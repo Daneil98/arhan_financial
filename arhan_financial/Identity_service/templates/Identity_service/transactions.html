@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}MY STOCKS{% endblock %}
+
+{% block content %}
+
+    <h2> MY STOCKS </h2>
+    
+    <table class="table text-center">
+        <tr><td><b>COMPANY NAME</b></td> <td><b>EQUITY ($)</b></td> <td><b>SHARES</b></td></tr>
+        {% if assets.stocks_owned %}
+            {% for stock in assets.stocks_owned%}
+                <tr><td> {{ stock.name }} </td> <td> {{ stock.equity }} </td>   <td><b> {{ stock.shares }} </b></td></tr>
+            {% endfor %}
+
+        {% else %}
+            <p>No owned stocks.</p>
+        {% endif %}
+    </table>
+    
+    <h2> MY LONG TRADES </h2>
+
+    <table class="table text-center">
+        <tr><td><b>COMPANY NAME</b></td> 
+            <td><b>EQUITY ($)</b></td> 
+            <td><b>LEVERAGE (x)</b></td> 
+            <td><b>EXECUTION PRICE ($)</b></td> 
+            <td><b>CURRENT PRICE ($)</b></td> 
+            <td><b>RETURNS ($)</b></td> 
+        </tr>
+
+        {% if context.long_trades %}
+            {% for long_trade in context.long_trades %}
+                <tr><td><b> {{ long_trade.name }} </b></td> 
+                    <td><b>{{ long_trade.amount }} </b></td>  
+                    <td><b> {{ long_trade.leverage }} </b></td> 
+                    <td><b> {{ long_trade.long_price }} </b></td> 
+                    <td><b> {{ long_trade.current_price }} </b></td> 
+                    <td><b> {{ long_trade.returns }} </b></td>
+                    <td> <form method="post">
+                        {% csrf_token %}
+                        {{ form }}
+                        <button type="submit" class="btn btn-danger">Close Trade</button>
+                    </form> </td>
+                </tr>
+            {% endfor %}
+        
+        {% else %}
+            <p>No long trades available.</p>
+        {% endif %}
+        
+    </table>
+
+    <br>
+    
+    <h2> MY SHORT TRADES </h2>
+
+    <table class="table text-center">
+        <tr><td><b>COMPANY NAME</b></td> 
+            <td><b>EQUITY ($)</b></td> 
+            <td><b>LEVERAGE (x)</b></td> 
+            <td><b>EXECUTION PRICE ($)</b></td> 
+            <td><b>CURRENT PRICE ($)</b></td> 
+            <td><b>RETURNS ($)</b></td>
+        </tr>
+
+        {% if context.short_trades %}
+            {% for short_trade in context.short_trades %}
+                <tr><td><b> {{ short_trade.name }} </b></td> 
+                    <td><b> {{ short_trade.amount }} </b></td>  
+                    <td><b> {{ short_trade.leverage }} </b></td> 
+                    <td><b> {{ short_trade.short_price }} </b></td> 
+                    <td><b> {{ short_trade.current_price }} </b></td> 
+                    <td><b> {{ short_trade.returns }} </b></td>
+                    <td> <form method="post">
+                        {% csrf_token %}
+                        {{ form }}
+                        <button type="submit" class="btn btn-danger">Close Trade</button>
+                      </form> </td>
+                </tr>
+            {% endfor %}
+        {% else %}
+            <p>No short trades available.</p>
+        {% endif %}
+        
+    </table>
+
+{% endblock %}

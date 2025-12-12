@@ -1,0 +1,35 @@
+from django.urls import path, include
+from . import views
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+
+
+app_name = 'account_service_api'
+
+urlpatterns = [
+    path('token/', TokenObtainPairView.as_view(), name='token'),        #Good
+    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),       #Good
+    
+    path('dashboard/', views.DashboardView.as_view(), name='dashboard'),                        #Good
+    path('create_savingsAccount/', views.CreateSavingsAccount.as_view(), name='create_savingsAccount'),                        #Good
+    path('create_currentAccount/', views.CreateCurrentAccount.as_view(), name='create_currentAccount'),               #Goo
+    
+    path('loan_apply/', views.CreateLoanApplication.as_view(), name='loan_apply'),    #Good
+    path('loan_detail/', views.LoanDetailView.as_view(), name='loan_detail'),                      #Good
+    
+    path('savings_accountDetails/', views.SavingsAccountDetails.as_view(), name='savings_accountDetails'),    #Good
+    path('create_card/', views.CreateCard.as_view(), name='create_card'),                 #Good
+    path('verify_card/', views.VerifyCard.as_view(), name='verify_card'),                 #Good
+    #path('verify_pin/', views.VerifyCardPin.as_view(), name='verify_pin'),                    #Good
+    path('verify_AccountPin/', views.VerifyAccountPin.as_view(), name='verify_AccountPin'),  #Good
+    path('block_account/', views.BlockAccount.as_view(), name='block_account'),         #Good
+    path('block_card/', views.BlockCard.as_view(), name='block_card'),                 #Good
+    path('get_balance/', views.GetBalance.as_view(), name='get_balance'),              #Good
+    path('create_ticket/', views.CreateTicket.as_view(), name='create_ticket'),              #Good
+    path('fetch_update_ticket/', views.GetAndUpdateTicket.as_view(), name='fetch_update_ticket'),              #Good
+    path('get_tickets/', views.GetTickets.as_view(), name='get_tickets'),              #Good
+    path('debit/', views.DebitAccount.as_view(), name='debit'),
+    path('credit/', views.CreditAccount.as_view(), name='credit'),
+    path('update_loan/', views.GetAndUpdateLoan.as_view(), name='update_loan'),
+    path('debit_bank/', views.DebitBankPool.as_view(), name='debit_bank'),
+    path('credit_bank/', views.CreditBankPool.as_view(), name='credit_bank')
+]

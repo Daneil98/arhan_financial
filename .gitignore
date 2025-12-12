@@ -1,0 +1,21 @@
+Python / Django
+
+pycache/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.env
+db.sqlite3
+*.log
+
+Docker
+
+.docker_cache/
+
+IDE settings
+
+.vscode/
+.idea/

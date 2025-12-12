@@ -1,0 +1,173 @@
+from django.db import models
+from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
+import uuid
+from django.conf import settings
+
+
+# Create your models here.
+
+class Account(models.Model):
+    """
+    Represents an internal bank account record that maps
+    to an Identity Service user and an external Ledger account.
+    """
+    #ledger_id = models.UUIDField(unique=True, help_text="UUID from Ledger Service", blank=True)
+    
+    user_id = models.IntegerField(unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    role = models.CharField(max_length=20, choices=[
+        ('customer', 'Customer'),
+        ('staff', 'Staff'),
+    ],)
+
+    def __str__(self):
+        return f"Account with Identity ID {self.user_id}"
+
+
+class SavingsAccount(models.Model):
+    """
+    A specific type of account product belonging to an Account.
+    """
+    #ledger_id = models.UUIDField(unique=True, help_text="UUID from Ledger Service")
+    user_id = models.IntegerField(unique=True)
+    account_number = models.CharField(max_length=20, unique=True)
+    balance = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    interest_rate = models.DecimalField(max_digits=5, decimal_places=2, default=1.50)
+    currency = models.CharField(max_length=3, default="NGN")
+    PIN = models.CharField(max_length=128)
+    active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Savings Account"
+        verbose_name_plural = "Savings Accounts"
+
+    def __str__(self):
+        return f"SavingsAccount({self.user_id}) - Balance: {self.balance} {self.currency}"
+    
+class CurrentAccount(models.Model):
+    #ledger_id = models.UUIDField(unique=True, help_text="UUID from Ledger Service")
+    user_id = models.IntegerField(unique=True)
+    balance = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    account_number = models.CharField(max_length=20, unique=True)
+    interest_rate = models.DecimalField(max_digits=5, decimal_places=2, default=1.00)
+    currency = models.CharField(max_length=3, default="NGN")
+    PIN = models.CharField(max_length=128)
+    active = models.BooleanField(default=True)
+    created_at = models.DateField(auto_now_add=True)
+    updated_at = models.DateField(auto_now=True)      
+    
+    class Meta:
+        verbose_name = "Current Account"
+        verbose_name_plural = "Current Accounts"  
+
+    def __str__(self):
+        return f"Current Account {self.account_number} for {self.user_id} with balance {self.balance}"
+
+
+class BankPool(models.Model):
+    total_funds = models.DecimalField(max_digits=15, decimal_places=2, default=9999999999999)
+    last_updated = models.DateField(auto_now=True)
+
+    def __str__(self):
+        return f"Bank Pool with total funds: {self.total_funds}"
+
+class Card(models.Model):
+    user_id = models.IntegerField(unique=True)
+    card_number = models.CharField(max_length=16, unique=True)
+    card_type = models.CharField(max_length=10, choices=[
+        ('debit', 'Debit'),
+    ], default='debit')
+    expiration_date = models.DateField(default=datetime.now() + timedelta(days=365*3))  # 3 years from now
+    cvv = models.CharField(max_length=4)
+    PIN = models.CharField(max_length=128)
+    issued_date = models.DateField(auto_now_add=True)
+    active = models.BooleanField(default=True)
+    
+    savings_account = models.ForeignKey(SavingsAccount, null=True, blank=True, on_delete=models.CASCADE)
+    current_account = models.ForeignKey(CurrentAccount, null=True, blank=True, on_delete=models.CASCADE)
+
+    def save(self, *args, **kwargs):
+        # Validation: Ensure we don't have BOTH or NEITHER
+        if self.savings_account and self.current_account:
+            raise ValueError("Card cannot verify both Savings and Current accounts.")
+        if not self.savings_account and not self.current_account:
+            raise ValueError("Card must be linked to an account.")
+        super().save(*args, **kwargs)
+
+    @property
+    def account(self):
+        # Helper to get whichever one exists
+        return self.savings_account or self.current_account
+
+    def __str__(self):
+        return f"{self.card_type.capitalize()} Card {self.card_number} for {self.user_id}"
+
+class Loan(models.Model):
+    user_id = models.IntegerField(unique=True)
+    #ledger_id = models.UUIDField(help_text="UUID from Ledger Service")
+    loan_id = models.UUIDField(primary_key=True, default = uuid.uuid4, help_text="Loan ID", editable=False)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    amount_to_repay = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    currency = models.CharField(max_length=10, default="NGN")
+    interest_rate = models.DecimalField(max_digits=5, decimal_places=2, default=12)
+    duration = models.CharField(
+            max_length=15, 
+            choices=[
+                ('3 Months', '3 Months'),
+                ('6 Months', '6 Months'),
+                ('12 Months', '12 Months'),
+                ('24 Months', '24 Months'),
+            ], 
+            default='3 Months')
+    start_date = models.DateField(null=True, blank=True)
+    
+    end_date = models.DateField(null=True, blank=True) 
+    loan_status = models.CharField(max_length=20, choices=[
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ], default='pending')
+    paid_off = models.BooleanField(default=False)
+
+    #Add a clean string representation
+    def __str__(self):
+        return f"{self.loan_status} Loan of {self.amount}, owned by {self.user_id} for {self.duration} from {self.start_date} to {self.end_date}" 
+    
+    def save(self, *args, **kwargs):
+        # 1. Parse the duration value (e.g., "12 Months" -> 12)
+        try:
+            # Extract the number from the string (e.g., '12' from '12 Months')
+            months = int(self.duration.split(' ')[0])
+        except (ValueError, IndexError):
+            # Fallback in case of unexpected format
+            months = 3 
+        
+        # 2. Calculate the end_date using start_date and parsed months
+        # We use relativedelta for accurate month addition, which handles 
+        # things like crossing years correctly.
+        if Loan.loan_status == 'approved':
+            self.amount_to_repay = self.amount * (1 + self.interest_rate/100)
+            self.start_date = datetime.now().date()
+            self.end_date = self.start_date + relativedelta(months=+months)
+        else:
+            self.start_date = None
+            self.end_date = None
+        # 3. Call the actual save method
+        super().save(*args, **kwargs)
+    
+    
+class IT_Tickets(models.Model):
+    user_id = models.IntegerField(unique=True)
+    id = models.AutoField(primary_key=True, unique=True)
+    complaint = models.TextField()
+    taken = models.BooleanField(default=False)
+    resolved = models.BooleanField(default=False)
+    remarks = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"Ticket {self.id} - Taken: {self.taken} - Resolved: {self.resolved}"

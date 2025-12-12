@@ -1,0 +1,132 @@
+version: '3.8'
+
+services:
+  # --- Message Broker ---
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"   # Main port
+      - "15672:15672" # Management UI
+    networks:
+      - arhan-network
+
+  # --- 1. Identity Service (arhan_financial) ---
+  identity:
+    build: ./arhan_financial
+    command: python manage.py runserver 0.0.0.0:8001
+    volumes:
+      - ./arhan_financial:/app
+    ports:
+      - "8001:8001"
+    environment:
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
+    depends_on:
+      - rabbitmq
+    networks:
+      - arhan-network
+
+  identity_worker:
+    build: ./arhan_financial
+    command: celery -A arhan_financial worker -l info
+    volumes:
+      - ./arhan_financial:/app
+    environment:
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
+    depends_on:
+      - rabbitmq
+      - identity
+    networks:
+      - arhan-network
+
+  # --- 2. Account Service (account_services) ---
+  account:
+    build: ./account_services
+    command: python manage.py runserver 0.0.0.0:8002
+    volumes:
+      - ./account_services:/app
+    ports:
+      - "8002:8002"
+    environment:
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
+      - IDENTITY_SERVICE_URL=http://identity:8001
+    depends_on:
+      - rabbitmq
+    networks:
+      - arhan-network
+
+  account_worker:
+    build: ./account_services
+    # Note: Using the event router configuration we discussed
+    command: celery -A account_services worker -l info
+    volumes:
+      - ./account_services:/app
+    environment:
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
+    depends_on:
+      - rabbitmq
+      - account
+    networks:
+      - arhan-network
+
+  # --- 3. Payments Service (payments) ---
+  payments:
+    build: ./payments
+    command: python manage.py runserver 0.0.0.0:8003
+    volumes:
+      - ./payments:/app
+    ports:
+      - "8003:8003"
+    environment:
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
+      - ACCOUNT_SERVICE_BASE_URL=http://account:8002
+    depends_on:
+      - rabbitmq
+    networks:
+      - arhan-network
+
+  payments_worker:
+    build: ./payments
+    # Note: Listening to both payment.internal and default celery queue
+    command: celery -A payments worker -Q payment.internal,celery -l info
+    volumes:
+      - ./payments:/app
+    environment:
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
+      - ACCOUNT_SERVICE_BASE_URL=http://account:8002
+    depends_on:
+      - rabbitmq
+      - payments
+    networks:
+      - arhan-network
+
+  # --- 4. Ledger Service (ledger_service) ---
+  ledger:
+    build: ./ledger_service
+    command: python manage.py runserver 0.0.0.0:8004
+    volumes:
+      - ./ledger_service:/app
+    ports:
+      - "8004:8004"
+    environment:
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
+    depends_on:
+      - rabbitmq
+    networks:
+      - arhan-network
+
+  ledger_worker:
+    build: ./ledger_service
+    command: celery -A ledger_service worker -l info
+    volumes:
+      - ./ledger_service:/app
+    environment:
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
+    depends_on:
+      - rabbitmq
+      - ledger
+    networks:
+      - arhan-network
+
+networks:
+  arhan-network:
+    driver: bridge
