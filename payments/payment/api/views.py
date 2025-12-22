@@ -7,6 +7,9 @@ from django.db import transaction
 from ..tasks import *
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from django.db.models import Q
+
+import time # <--- Import this
 
 class InternalTransferAPIView(APIView):
     authentication_classes = [JWTAuthentication]
@@ -18,6 +21,8 @@ class InternalTransferAPIView(APIView):
         acc = get_object_or_404(PaymentAccount, user_id=user_id)
         payer_account_id = acc.account_number
         serializer = PaymentCreateSerializer(data=request.data)
+        # 1. START THE CLOCK
+        start_time = time.time() 
         
         if serializer.is_valid():
             # Construct a clean dictionary to send to Celery
@@ -26,8 +31,10 @@ class InternalTransferAPIView(APIView):
                 "payer_account_id": payer_account_id,
                 "payee_account_id": serializer.validated_data['payee_account_id'],
                 "amount": str(serializer.validated_data['amount']), # Use String for currency!
-                "account_type": str(serializer.validated_data['account_type']),
+                #"account_type": str(serializer.validated_data['account_type']),
                 "pin": str(serializer.validated_data['pin']), # Lowercase 'pin'
+                # 2. ADD TIMESTAMP TO PAYLOAD
+                "initiated_at_ts": start_time
             }
             
             # Create the Pending Transaction Record HERE (Before Celery)
@@ -43,7 +50,7 @@ class InternalTransferAPIView(APIView):
             )
             
             # Fire and forget
-            process_internal_transfer.apply_async(args=[data], countdown=2)
+            process_internal_transfer.apply_async(args=[data])
 
             return Response({"status": "Processing", "details": data}, status=201)
         else:
@@ -90,6 +97,61 @@ class CardPaymentAPIView(APIView):
             return Response(serializer.errors, status=400)
 
 
+class TransferHistory(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        user_id = request.user.id 
+        acc = get_object_or_404(PaymentAccount, user_id=user_id)
+        number = acc.account_number
+        payments = PaymentRequest.objects.filter(
+            (Q(payer_account_id=number) | Q(payee_account_id=number)) & Q(status='COMPLETED')
+        ).order_by('-created_at')   
+
+        history_data = [] 
+
+        for payment in payments:
+            data = {
+                'sender': payment.payer_account_id,
+                'recipient': payment.payee_account_id,
+                'amount': payment.amount,
+                'currency': payment.currency,
+                'payment_type': payment.payment_type,
+                'date': payment.created_at,
+                'status': payment.status,
+            }
+
+            history_data.append(data)
+        
+        return Response({"message": "Your transfer History", "data": history_data}, 
+                        status=200)
+
+class GeneralTransferHistory(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        payments = PaymentRequest.objects.order_by('-created_at')
+    
+        history_data = [] 
+
+        for payment in payments:
+            data = {
+                'sender': payment.payer_account_id,
+                'recipient': payment.payee_account_id,
+                'amount': payment.amount,
+                'currency': payment.currency,
+                'payment_type': payment.payment_type,
+                'date': payment.created_at,
+                'status': payment.status,
+            }
+            # 4. Append to the list
+            history_data.append(data)
+        
+        return Response({"message": "Your Bank Transactions History", "data": history_data}, status=200)
+    
+    
 class ExternalBankTransferAPIView(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
@@ -101,7 +163,7 @@ class ExternalBankTransferAPIView(APIView):
         payment = serializer.save(payment_type="BANK_EXTERNAL")
 
         # Trigger external bank API
-        #process_external_bank_transfer.apply_async(args=[payment.id], countdown=10)
+        #process_external_bank_transfer.apply_async(args=[payment.id])
 
         return Response(status=201)
 

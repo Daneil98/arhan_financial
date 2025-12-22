@@ -1,0 +1,213 @@
+{% extends 'base.html' %}
+
+{% block layout %}
+<style>
+    /* --- MOBILE OPTIMIZATION --- */
+    @media (max-width: 992px) {
+        /* 1. Layout: Switch from Side-by-Side to Vertical Stack */
+        .dashboard-container {
+            flex-direction: column;
+        }
+
+        /* 2. Sidebar: Hide by default, show when toggled */
+        .sidebar {
+            position: fixed;
+            left: -280px; /* Hide off-screen */
+            top: 0;
+            bottom: 0;
+            z-index: 1000;
+            transition: left 0.3s ease;
+            width: 260px;
+        }
+        
+        .sidebar.active {
+            left: 0; /* Slide in */
+        }
+        
+        /* Overlay background when sidebar is open */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+        .sidebar.active + .sidebar-overlay {
+            display: block;
+        }
+
+        /* 3. Main Content: Use full width */
+        .main-content {
+            margin-left: 0;
+            width: 100%;
+            padding: 15px; /* Reduce padding for mobile */
+        }
+
+        /* 4. Grid System: Force everything to 1 column */
+        .dashboard-grid {
+            grid-template-columns: 1fr !important; /* Force single column */
+            gap: 20px;
+        }
+        
+        /* Force all col-span classes to take full width */
+        [class*="col-span-"] {
+            grid-column: span 1 !important;
+        }
+
+        /* 5. Header: Adjust layout */
+        .dash-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 15px;
+        }
+        .dash-header .flex {
+            width: 100%;
+            justify-content: space-between;
+        }
+        
+        /* Mobile Menu Toggle Button (We will add this in HTML) */
+        .mobile-menu-btn {
+            display: block !important; /* Show only on mobile */
+        }
+    }
+</style>
+
+
+<div class="dashboard-container">
+    
+    
+    <nav class="sidebar">
+        <div class="brand-logo-dark">
+            <i class="fas fa-arrow-trend-up text-green"></i> Arhan Financial
+        </div>
+        
+        <ul>
+            <li>
+                <a href="{% url 'dashboard' %}" class="menu-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                    <i class="fas fa-house"></i> Dashboard
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'transactions' %}" class="menu-item {% if request.resolver_match.url_name == 'transactions' %}active{% endif %}">
+                    <i class="fas fa-arrow-right-arrow-left"></i> Transaction
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'bank_account' %}" class="menu-item active">
+                    <i class="fas fa-wallet"></i> Bank Account
+                </a>
+            </li>
+
+
+            <li>
+                <a href="{% url 'loan_detail' %}" class="menu-item">
+                    <i class="fas fa-hand-holding-dollar"></i> Loans
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'activity' %}" class="menu-item">
+                    <i class="fas fa-clock-rotate-left"></i> Activity
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'analytics' %}" class="menu-item">
+                    <i class="fas fa-chart-simple"></i> Analytics
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <main class="main-content">
+        <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+        <header class="dash-header">
+            <div style="display: flex; align-items: center; gap: 15px; width: 100%;">
+                
+                <div class="mobile-menu-btn" style="display: none; font-size: 1.5rem; cursor: pointer;" onclick="toggleSidebar()">
+                    <i class="fas fa-bars"></i>
+                </div>
+
+                <h2 style="font-weight: 600;">{% block page_heading %}Overview{% endblock %}</h2>
+            </div>
+
+        </header>
+
+        <header class="dash-header">
+            
+
+            <div class="flex items-center" style="gap: 20px;">
+                {% block header_actions %}{% endblock %}
+
+                <div class="search-bar">
+                    <i class="fas fa-search text-gray"></i>
+                    <input type="text" placeholder="Search...">
+                </div>
+                
+                <div class="user-profile">
+                    
+                    
+                    <span>Hi, {{ request.session.username|default:"Customer" }}</span>
+                    
+                    <a href="{% url 'logout' %}" style="margin-left: 5px; color: #E53E3E; font-size: 0.8rem;">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <main class="dashboard-main-content">
+        {% block content %}{% endblock %}
+
+        {% if messages %}
+            <div id="message-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999;">
+                {% for message in messages %}
+                    <div class="alert-box {% if message.tags == 'error' %}alert-danger{% else %}alert-success{% endif %}" 
+                        style="min-width: 300px; padding: 15px 20px; margin-bottom: 10px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: space-between; animation: slideIn 0.3s ease-out;">
+                        
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            {% if message.tags == 'error' %}
+                                <i class="fas fa-exclamation-circle" style="font-size: 1.2rem;"></i>
+                            {% else %}
+                                <i class="fas fa-check-circle" style="font-size: 1.2rem;"></i>
+                            {% endif %}
+                            
+                            <span style="font-weight: 500; font-size: 0.95rem;">{{ message }}</span>
+                        </div>
+
+                        <span onclick="this.parentElement.style.display='none'" style="cursor: pointer; opacity: 0.6; margin-left: 15px;">&times;</span>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <style>
+                .alert-danger { background-color: #FEF2F2; color: #DC2626; border-left: 5px solid #DC2626; }
+                .alert-success { background-color: #ECFDF5; color: #059669; border-left: 5px solid #059669; }
+                
+                @keyframes slideIn {
+                    from { transform: translateX(100%); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+            </style>
+
+            <script>
+                setTimeout(function() {
+                    const container = document.getElementById('message-container');
+                    if (container) {
+                        container.style.transition = "opacity 0.5s";
+                        container.style.opacity = "0";
+                        setTimeout(() => container.remove(), 500);
+                    }
+                }, 5000);
+            </script>
+        {% endif %}
+    </main>
+
+</div>
+
+<script>
+    function toggleSidebar() {
+        const sidebar = document.querySelector('.sidebar');
+        sidebar.classList.toggle('active');
+    }
+</script>
+{% endblock %}

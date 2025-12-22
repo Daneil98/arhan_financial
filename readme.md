@@ -4,25 +4,34 @@ A scalable, event-driven banking backend built using Django and a Microservices 
 
 🚀 Key Architecture
 
-The project is split into four decoupled services that communicate asynchronously using RabbitMQ and Celery:
+The project is split into five decoupled services that communicate asynchronously using RabbitMQ and Celery:
 
-🔐 Identity Service: Manages user authentication (JWT), role-based access control (Customer vs. Staff), and profile management.
+🔐 Identity Service: The centralized authentication authority. It handles user registration, JWT issuance (with custom claim enrichment), and Role-Based Access Control (RBAC) for Customers and Staff.
 
-💰 Account Service: Handles Savings & Current accounts services, balance management, loan management, tickets and secure PIN verification.
+💰 Account Service: The core banking engine. It manages account lifecycles (Savings/Current), loan processing, support ticketing, and enforces balance consistency.
 
-💸 Payment Service: Orchestrates internal transfers and card payments using atomic transactions and service-to-service API calls.
+💸 Payment Service: The transaction orchestrator. It executes internal transfers and card charges, utilizing atomic transactions and connection pooling to ensure financial accuracy across distributed databases.
 
-📖 Ledger Service: A passive consumer service that maintains an immutable double-entry ledger for all financial events to ensure data integrity.
+📖 Ledger Service: An immutable audit log. Acting as a passive consumer, it listens for finalized transaction events to record double-entry bookkeeping records, ensuring eventual consistency and data integrity.
+
+💻 Frontend Service: A user-facing web portal acting as a Backend-for-Frontend (BFF). It aggregates data from multiple microservices into a unified UI, handling session management and secure token storage.
+
 
 🛠️ Tech Stack
 
 Framework: Python, Django, Django Rest Framework (DRF)
 
-Async Messaging: Celery, RabbitMQ (Topic Exchange routing)
+Infrastructure: Nginx (Gateway), RabbitMQ (Message Broker), Celery (Workers)
 
 Gateway: Nginx (Reverse Proxy)
 
-Security: JWT (Shared Secret for inter-service auth), Custom Permissions
+Security:
+
+Auth: JWT with Service-to-Service validation.
+
+Encryption: Fernet (Symmetric Encryption) for sensitive card data.
+
+Hashing: PBKDF2 (NIST compliant) for credentials.
 
 Database: Distributed SQL Databases (per service)
 
@@ -48,7 +57,7 @@ Go to each microservice project directory and do the following:
 Install dependencies
 
 ```bash
-  pip install -r Requirements.txt
+  pip install -r Requirement.txt
 ```
 
 Prepare for migrations

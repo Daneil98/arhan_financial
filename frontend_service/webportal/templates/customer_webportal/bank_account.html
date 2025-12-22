@@ -1,0 +1,209 @@
+{% extends 'dashboard_layout.html' %}
+{% load humanize %}
+{% block title %}Current Account Details{% endblock %}
+{% block page_heading %}My Accounts{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Gradient for Current Account Card (Distinct from Savings) */
+    .card-current-gradient {
+        background: linear-gradient(135deg, #434343 0%, #000000 100%); /* Sleek Black/Grey for Current */
+        color: white;
+    }
+
+    .detail-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 15px 0;
+        border-bottom: 1px solid var(--border-light);
+    }
+    .detail-row:last-child {
+        border-bottom: none;
+    }
+    .detail-label {
+        color: var(--secondary-text);
+        font-size: 0.9rem;
+    }
+    .detail-value {
+        font-weight: 600;
+        color: var(--primary-dark);
+    }
+    
+    .action-btn-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 15px;
+        margin-top: 20px;
+    }
+    
+    .action-card {
+        background: var(--bg-main);
+        padding: 15px;
+        border-radius: 12px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+    }
+    .action-card:hover {
+        border-color: var(--primary-green);
+        background: #E7F8F0;
+    }
+    .action-card i {
+        font-size: 1.5rem;
+        margin-bottom: 8px;
+        color: var(--primary-green);
+    }
+    .action-card span {
+        display: block;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+</style>
+{% endblock %}
+{% block content %}
+<div class="dashboard-grid">
+
+    <div class="col-span-2">
+        <div class="card" style="height: 100%; display: flex; flex-direction: column;">
+            
+            <div class="flex justify-between items-center mb-4">
+                <h3 style="font-size: 1.1rem; font-weight: 600;">Current Account</h3>
+                <span style="background: #E7F8F0; color: var(--primary-green); padding: 4px 12px; border-radius: 15px; font-size: 0.8rem; font-weight: 600;">Active</span>
+            </div>
+
+            <div class="card-visual card-current-gradient" style="border-radius: 20px; padding: 25px; height: 220px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 10px 20px rgba(0,0,0,0.2);">
+                <div class="flex justify-between items-center">
+                    <span style="opacity: 0.8; letter-spacing: 1px;">Arhan Financial</span>
+                    <i class="fas fa-wifi" style="transform: rotate(90deg);"></i>
+                </div>
+                
+                <div style="margin-top: 10px;">
+                    <p style="font-size: 0.8rem; opacity: 0.7; margin-bottom: 5px;">Available Balance</p>
+                    <h2 style="font-size: 2rem; font-weight: 600;">₦ {{ context.balance|intcomma }}</h2>
+                </div>
+
+                <div class="flex justify-between items-center mt-4">
+                    <div>
+                        <p style="font-size: 0.8rem; opacity: 0.7; letter-spacing: 2px;">{{ context.number }}</p>
+                        <p style="font-size: 0.9rem; font-weight: 500; margin-top: 2px;">{{ request.user.first_name }} {{ request.user.last_name }}</p>
+                    </div>
+                    <i class="fab fa-cc-mastercard" style="font-size: 2.2rem; opacity: 0.9;"></i>
+                </div>
+            </div>
+
+            <div style="margin-top: auto; padding-top: 20px;">
+                <a href="{% url 'view_cards' %}" style="
+                    display: flex; 
+                    align-items: center; 
+                    justify-content: center; 
+                    width: 100%; 
+                    padding: 12px; 
+                    border: 1px solid var(--border-light); 
+                    border-radius: 12px; 
+                    color: var(--primary-dark); 
+                    font-weight: 600; 
+                    text-decoration: none; 
+                    transition: all 0.2s;
+                    background: white;
+                " onmouseover="this.style.borderColor='var(--primary-green)'; this.style.color='var(--primary-green)';" 
+                   onmouseout="this.style.borderColor='var(--border-light)'; this.style.color='var(--primary-dark)';">
+                    
+                    <i class="fas fa-credit-card" style="margin-right: 8px;"></i> View Card Details
+                </a>
+            </div>
+
+        </div>
+    </div>
+
+<div class="col-span-2">
+        <div class="card" style="height: 100%;">
+            <div class="flex justify-between items-center mb-4">
+                <h3 style="font-size: 1.1rem; font-weight: 600;">Account Details</h3>
+                
+                <a href="{% url 'create_bank_account' %}" style="
+                    font-size: 0.85rem; 
+                    color: var(--primary-green); 
+                    border: 1px solid var(--primary-green); 
+                    padding: 6px 12px; 
+                    border-radius: 8px; 
+                    text-decoration: none; 
+                    font-weight: 600; 
+                    transition: all 0.2s;
+                " onmouseover="this.style.background='var(--primary-green)'; this.style.color='white';" 
+                  onmouseout="this.style.background='transparent'; this.style.color='var(--primary-green)';">
+                    <i class="fas fa-plus-circle"></i> New Account
+                </a>
+            </div>
+            
+            <div class="detail-row">
+                <span class="detail-label">Account Number</span>
+                <span class="detail-value">{{ context.number }}</span>
+            </div>
+            
+            <div class="detail-row">
+                <span class="detail-label">Interest Rate</span>
+                <span class="detail-value text-green">{{ context.rate }}% p.a.</span>
+            </div>
+            
+            <div class="detail-row">
+                <span class="detail-label">Opened On</span>
+                <span class="detail-value">{{ context.created_at|slice:":10" }}</span>
+            </div>
+
+            <div class="detail-row">
+                <span class="detail-label">Account ID</span>
+                <span class="detail-value text-gray"># {{ context.id }}</span>
+            </div>
+
+            <div class="detail-row" style="border-bottom: none;">
+                <span class="detail-label">Currency</span>
+                <span class="detail-value">NGN</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-span-2">
+        <div class="card" style="height: 100%;">
+            <h3 class="mb-3" style="font-size: 1rem; font-weight: 600;">Quick Actions</h3>
+            <div class="action-btn-grid" style="grid-template-columns: repeat(3, 1fr);">
+                
+                <div class="action-card">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    <span>Statement</span>
+                </div>
+                
+                <div class="action-card" onclick="location.href='{% url 'activity' %}'">
+                    <i class="fas fa-sliders"></i>
+                    <span> Settings </span>
+                </div>
+
+                <div class="action-card" onclick="location.href='{% url 'create_ticket' %}'">
+                    <i class="fas fa-headset"></i>
+                    <span> Support</span>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="col-span-2">
+        <div class="card" style="height: 100%;">
+            <h3 class="mb-3" style="font-size: 1rem; font-weight: 600;">Transfer Money</h3>
+            <div class="action-btn-grid" style="grid-template-columns: repeat(2, 1fr);">
+                
+                <div class="action-card" onclick="location.href='{% url 'internal_transfer' %}?from={{ context.number }}'">
+                    <i class="fas fa-money-bill-transfer"></i>
+                    <span>Internal Transfer</span>
+                </div>
+                
+                <div class="action-card" onclick="location.href='{% url 'card_payment' %}?from={{ context.number }}'">
+                    <i class="fas fa-credit-card"></i> <span>Card Transfer</span>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

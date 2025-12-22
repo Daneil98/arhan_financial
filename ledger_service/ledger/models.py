@@ -4,14 +4,6 @@ from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 
 # Create your models here.
-
-class BankPool(models.Model):
-    total_funds = models.DecimalField(max_digits=15, decimal_places=2, default=9999999999999)
-    last_updated = models.DateField(auto_now=True)
-
-    def __str__(self):
-        return f"Bank Pool with total funds: {self.total_funds}"
-    
     
 class LedgerAccount(models.Model):
     """
@@ -20,7 +12,7 @@ class LedgerAccount(models.Model):
     """
     ledger_id = models.UUIDField(default=uuid.uuid4, editable=False)
     user_id = models.IntegerField(help_text="ID of the User from Account Service", unique=True)
-    account_type = models.CharField(max_length=50)   # savings, current, loan, fee, reserve, etc.
+    account_number = models.CharField(max_length=20, unique=True, blank=True, null=True)
     currency = models.CharField(max_length=10, default="NGN")
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -87,35 +79,4 @@ class LedgerEntry(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.entry_type} {self.amount} {self.currency} -> {self.ledger_account_id}"
-
-
-class Loan(models.Model):
-    external_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    loan_id = models.UUIDField(unique=True, help_text="ID from Loan Service")
-    amount = models.DecimalField(max_digits=10, decimal_places=2)
-    currency = models.CharField(max_length=10)
-    interest_rate = models.DecimalField(max_digits=5, decimal_places=2)
-    duration = models.CharField(
-            max_length=15, 
-            choices=[
-                ('3 Months', '3 Months'),
-                ('6 Months', '6 Months'),
-                ('12 Months', '12 Months'),
-                ('24 Months', '24 Months'),
-            ], 
-            default='3 Months')
-    start_date = models.DateField(default=datetime.now)
-    end_date = models.DateField(null=True, blank=True) 
-    loan_status = models.CharField(max_length=20, choices=[
-        ('pending', 'Pending'),
-        ('approved', 'Approved'),
-        ('rejected', 'Rejected'),
-    ], default='pending')
-    paid_off = models.BooleanField(default=False)
-
-    #Add a clean string representation
-    def __str__(self):
-        return f"Duration from {self.start_date} to {self.end_date}" 
-    
-    
+        return f"{self.entry_type} {self.amount} {self.currency} -> {self.user_id}"

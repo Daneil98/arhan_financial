@@ -1,0 +1,150 @@
+{% extends 'staff_dashboard_layout.html' %}
+
+{% block title %}Staff Operations - Arhan Financial{% endblock %}
+{% block page_heading %}Staff Portal{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Reuse the exact same styles from your customer activity.html */
+    .activity-card {
+        background: var(--bg-white);
+        border: 1px solid var(--border-light);
+        border-radius: 16px;
+        padding: 25px;
+        text-align: center;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        min-height: 170px; /* Slightly taller for staff descriptions */
+    }
+    
+    .activity-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+    }
+
+    /* Icon Bubbles */
+    .icon-bubble {
+        width: 60px; height: 60px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.5rem; margin-bottom: 15px; transition: all 0.3s;
+    }
+
+    /* THEME: Security / User Mgmt (Red/Pink) */
+    .theme-security .icon-bubble { background: #FFF5F5; color: #E53E3E; }
+    .activity-card:hover .theme-security .icon-bubble { background: #E53E3E; color: white; }
+    .activity-card:hover .theme-security { border-color: #E53E3E; }
+
+    /* THEME: Lending (Green) */
+    .theme-lending .icon-bubble { background: #E7F8F0; color: var(--primary-green); }
+    .activity-card:hover .theme-lending .icon-bubble { background: var(--primary-green); color: white; }
+    .activity-card:hover .theme-lending { border-color: var(--primary-green); }
+
+    /* THEME: Support (Indigo/Purple) */
+    .theme-support .icon-bubble { background: #Eef2ff; color: #4F46E5; }
+    .activity-card:hover .theme-support .icon-bubble { background: #4F46E5; color: white; }
+    .activity-card:hover .theme-support { border-color: #4F46E5; }
+
+    /* THEME: Financial Records (Slate/Blue-Grey) */
+    .theme-records .icon-bubble { background: #F1F5F9; color: #475569; }
+    .activity-card:hover .theme-records .icon-bubble { background: #475569; color: white; }
+    .activity-card:hover .theme-records { border-color: #475569; }
+
+    .card-title { font-weight: 600; font-size: 1rem; color: var(--primary-dark); margin-bottom: 5px; }
+    .card-desc { font-size: 0.85rem; color: var(--secondary-text); line-height: 1.4; }
+    
+    .section-title {
+        grid-column: 1 / -1;
+        font-size: 1.1rem; font-weight: 600;
+        margin-top: 30px; margin-bottom: 15px;
+        color: var(--primary-dark);
+        border-bottom: 1px solid var(--border-light);
+        padding-bottom: 10px;
+        display: flex; align-items: center; gap: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+
+    <div class="section-title">
+        <i class="fas fa-users-cog text-gray"></i> User Management
+    </div>
+
+    <div class="col-span-1">
+        <div class="activity-card theme-security" onclick="location.href='{% url 'block_account' %}'">
+            <div class="icon-bubble"><i class="fas fa-user-lock"></i></div>
+            <h3 class="card-title">Block Account</h3>
+            <p class="card-desc">Freeze a customer account for security reasons.</p>
+        </div>
+    </div>
+
+    <div class="col-span-1">
+        <div class="activity-card theme-security" onclick="location.href='{% url 'customer_register' %}'"> <div class="icon-bubble"><i class="fas fa-user-plus"></i></div>
+            <h3 class="card-title">Register User</h3>
+            <p class="card-desc">Onboard a new customer manually.</p>
+        </div>
+    </div>
+
+
+    <div class="section-title">
+        <i class="fas fa-hand-holding-dollar text-gray"></i> Loan Management
+    </div>
+
+    <div class="col-span-1">
+        <div class="activity-card theme-lending" onclick="location.href='{% url 'loan_search' %}'">
+            <div class="icon-bubble"><i class="fas fa-file-invoice-dollar"></i></div>
+            <h3 class="card-title">Manage Loans</h3>
+            <p class="card-desc">Search, approve, or reject loan applications.</p>
+        </div>
+    </div>
+    
+    <div class="col-span-1">
+        <div class="activity-card theme-lending" onclick="#">
+            <div class="icon-bubble"><i class="fas fa-percent"></i></div>
+            <h3 class="card-title">Loan Rates</h3>
+            <p class="card-desc">Adjust interest rates and global loan settings.</p>
+        </div>
+    </div>
+
+
+    <div class="section-title">
+        <i class="fas fa-headset text-gray"></i> Customer Support
+    </div>
+
+    <div class="col-span-1">
+        <div class="activity-card theme-support" onclick="location.href='{% url 'search_ticket' %}'">
+            <div class="icon-bubble"><i class="fas fa-ticket-alt"></i></div>
+            <h3 class="card-title">Ticket Center</h3>
+            <p class="card-desc">Find tickets by ID and post agent replies.</p>
+        </div>
+    </div>
+
+
+    <div class="section-title">
+        <i class="fas fa-book text-gray"></i> General Ledger
+    </div>
+
+    <div class="col-span-1">
+        <div class="activity-card theme-records" onclick="location.href='{% url 'ledger_records' %}'">
+            <div class="icon-bubble"><i class="fas fa-book-journal-whills"></i></div>
+            <h3 class="card-title">View Ledger</h3>
+            <p class="card-desc">Inspect core system accounting entries.</p>
+        </div>
+    </div>
+
+    <div class="col-span-1">
+        <div class="activity-card theme-records" onclick="location.href='{% url 'bank_transactions' %}'">
+            <div class="icon-bubble"><i class="fas fa-money-check-alt"></i></div>
+            <h3 class="card-title">Bank Transactions</h3>
+            <p class="card-desc">Monitor all system-wide transfers and payments.</p>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

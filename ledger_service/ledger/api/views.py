@@ -46,7 +46,7 @@ class create_ledgerAccount(APIView):
                     "external_id": str(account.external_account_id),
                     "created_at": account.created_at.isoformat(),
                 }
-                publish_ledgerAccount_created.apply_async(args=[data], countdown=10)
+                publish_ledgerAccount_created.apply_async(args=[data])
                 return Response({"id": str(account.id), **serializer.data},
                                 status=status.HTTP_201_CREATED)
             except Exception as e:
@@ -77,8 +77,9 @@ class create_ledgerEntry(APIView):
                 "currency": str(entry.currency),
                 "created_at": entry.created_at.isoformat(),
             }
-            publish_ledgerEntry_created.apply_async(args=[data], countdown=10)
-            return Response({"message": "Ledger Entry successfully created", "entry": entry}, status=status.HTTP_201_CREATED)
+            publish_ledgerEntry_created.apply_async(args=[data])
+            return Response({"message": "Ledger Entry successfully created",
+                             "entry": entry}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=400)
 
 
@@ -135,5 +136,63 @@ class create_transaction(APIView):
             "created_at": txn.created_at.isoformat(),
             "reconciled": txn.is_reconciled,
         }
-        publish_transaction_created.apply_async(args=[data], countdown=10)
+        publish_transaction_created.apply_async(args=[data])
         return Response(TransactionSerializer(txn).data, status=201)
+    
+
+class BankLogs(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        credit_history = []
+        debit_history = []
+        
+        credits = LedgerEntry.objects.filter(entry_type='CREDIT').all()
+        debits = LedgerEntry.objects.filter(entry_type='DEBIT').all()
+        
+        for credit in credits:
+            credit_data = {
+                'amount': credit.amount,
+                'currency': credit.currency,
+                'created_at': credit.created_at,
+                'transaction_id': credit.transaction_id,
+            }
+            credit_history.append(credit_data)
+            
+        for debit in debits:
+            debit_data = {
+                'amount': debit.amount,
+                'currency': debit.currency,
+                'created_at': debit.created_at,
+                'transaction_id': debit.transaction_id,
+            }
+            debit_history.append(debit_data)
+            
+        return Response({"message": "Successfully Retrieved the data",
+                         "credit_data": credit_history, "debit_data": debit_history},
+                        status=200)
+        
+
+class TransactionLogs(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, requests):
+        transaction_history = []
+        
+        transactions = Transaction.objects.all()
+        
+        for transaction in transactions:
+            data = {
+                'user_id': transaction.user_id,
+                'reference': transaction.reference,
+                'description': transaction.description,
+                'created_at': transaction.created_at,
+            }
+            transaction_history.append(data)
+        
+        return Response({"message": "Transaction data retrieved successfully", 
+                        'history': transaction_history}, status=200)
+    
+    

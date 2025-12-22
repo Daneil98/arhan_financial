@@ -1,0 +1,74 @@
+{% extends 'dashboard_layout.html' %}
+
+{% block title %}Ticket Details{% endblock %}
+{% block page_heading %}Ticket #{{ ticket.id|default:"Unknown" }}{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+    
+    <div class="col-span-3">
+        
+        <div class="card mb-4">
+            <div class="flex justify-between mb-4">
+                <h3 style="font-size: 1.1rem; font-weight: 600;">{{ ticket.subject }}</h3>
+                <span class="text-gray" style="font-size: 0.9rem;">{{ ticket.created_at|slice:":10" }}</span>
+            </div>
+            <div style="background: #F9FAFB; padding: 15px; border-radius: 10px; border: 1px solid var(--border-light);">
+                <p class="text-gray" style="line-height: 1.6;">{{ ticket.complaint }}</p>
+            </div>
+        </div>
+
+        {% if ticket.remarks %}
+        <div class="card mb-4" style="background-color: #F0FDF4; border: 1px solid #bbf7d0;">
+            <div class="flex justify-between mb-2">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-headset" style="color: var(--primary-green);"></i>
+                    <h4 style="font-size: 0.95rem; font-weight: 600; color: #065f46;">Support Agent Response</h4>
+                </div>
+                <span class="text-gray" style="font-size: 0.8rem;">{{ ticket.updated_at|slice:":10" }}</span>
+            </div>
+            <p style="font-size: 0.95rem; color: #065f46;">{{ ticket.remarks }}</p>
+        </div>
+        {% endif %}
+
+        <div class="card">
+            <h3 class="mb-4" style="font-size: 1.1rem;">Add a Reply</h3>
+            <form method="POST">
+                {% csrf_token %}
+                
+                {% for field in form %}
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; font-weight: 500; margin-bottom: 8px;">{{ field.label }}</label>
+                        {{ field }} </div>
+                {% endfor %}
+
+                <button type="submit" class="btn-primary" style="margin-top: 10px;">
+                    <i class="fas fa-paper-plane" style="margin-right: 8px;"></i> Post Reply
+                </button>
+            </form>
+        </div>
+
+    </div>
+
+    <div class="col-span-1">
+        <div class="card">
+            <h4 style="font-size: 0.9rem; color: gray; margin-bottom: 15px;">DETAILS</h4>
+            
+            <div style="margin-bottom: 15px;">
+                <span style="display: block; font-size: 0.8rem; color: gray;">Status</span>
+                <span style="font-weight: 600; color: var(--primary-green);">{{ ticket.status|default:"Open" }}</span>
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+                <span style="display: block; font-size: 0.8rem; color: gray;">User ID</span>
+                <span style="font-weight: 600;">{{ ticket.user_id }}</span>
+            </div>
+
+            <a href="{% url 'search_ticket' %}" style="display: block; margin-top: 20px; font-size: 0.9rem; color: var(--primary-dark);">
+                <i class="fas fa-arrow-left"></i> Back to Search
+            </a>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

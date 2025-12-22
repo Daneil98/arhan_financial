@@ -1,0 +1,54 @@
+{% extends 'staff_dashboard_layout.html' %}
+
+{% block title %}Loan Details - Arhan Financial{% endblock %}
+{% block page_heading %}Loan #{{ loan.loan_id|default:loan.id }}{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+    <div class="col-span-4" style="max-width: 800px; margin: 0 auto;">
+        
+        <div class="card">
+            <div class="flex justify-between items-center mb-4">
+                <h3 style="font-size: 1.1rem; font-weight: 600;">Application Details</h3>
+                
+                {% if loan.status == 'Approved' %}
+                    <span style="background: #E7F8F0; color: var(--primary-green); padding: 5px 15px; border-radius: 15px; font-size: 0.8rem; font-weight: 600;">Approved</span>
+                {% elif loan.status == 'Rejected' %}
+                    <span style="background: #FEF2F2; color: #DC2626; padding: 5px 15px; border-radius: 15px; font-size: 0.8rem; font-weight: 600;">Rejected</span>
+                {% else %}
+                    <span style="background: #FFF6E6; color: #FFB37B; padding: 5px 15px; border-radius: 15px; font-size: 0.8rem; font-weight: 600;">Pending Review</span>
+                {% endif %}
+            </div>
+
+            <form method="POST">
+                {% csrf_token %}
+                
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label class="form-label" style="display: block; margin-bottom: 8px; font-weight: 500;">Loan Reference ID</label>
+                    <input type="text" value="{{ loan.loan_id|default:loan.id }}" readonly 
+                           style="width: 100%; padding: 12px; border: 1px solid var(--border-light); border-radius: 10px; background-color: #f9f9f9; color: gray;">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label class="form-label" style="display: block; margin-bottom: 8px; font-weight: 500;">Requested Amount ($)</label>
+                    {{ form.amount }}
+                </div>
+
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label class="form-label" style="display: block; margin-bottom: 8px; font-weight: 500;">Status Action</label>
+                    {{ form.status }}
+                    <p class="text-gray" style="font-size: 0.8rem; margin-top: 5px;">Update the current status of this application.</p>
+                </div>
+
+                <div class="flex" style="gap: 15px; margin-top: 30px; border-top: 1px solid var(--border-light); padding-top: 20px;">
+                    <button type="submit" class="btn-primary" style="padding: 12px 25px;">Update Request</button>
+                    
+                    <a href="{% url 'loan_search' %}" style="padding: 12px 25px; border-radius: 12px; border: 1px solid var(--border-light); color: var(--primary-dark); text-decoration: none; font-weight: 600;">
+                        Go Back
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

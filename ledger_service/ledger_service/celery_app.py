@@ -53,42 +53,16 @@ app.conf.task_queues = [
     ),
     
     Queue(
-        name='account_service.SavingsAccount.created',  # <--- Name A
+        name='account_service.BankAccount.created',  # <--- Name A
         exchange=account_exchange,
-        routing_key='account_service.SavingsAccount.created',            # <--- MUST match Producer's key exactly
-        durable=True
-    ),
-    Queue(
-        name='account_service.currentAccount.created',  # <--- Name A
-        exchange=account_exchange,
-        routing_key='account_service.currentAccount.created',            # <--- MUST match Producer's key exactly
+        routing_key='account_service.BankAccount.created',            # <--- MUST match Producer's key exactly
         durable=True
     ),
     
     # OUTBOUND (for other services to listen to)
-    Queue("ledger.transaction.created", ledger_exchange, routing_key="ledger.transaction.created"),
-
-    Queue("ledger.entry.created", ledger_exchange, routing_key="ledger.entry.created"),
-
-    Queue("ledger.account.created", ledger_exchange, routing_key="ledger.account.created"),
 ]
 
 app.conf.task_routes = {
-    # Outbound publisher tasks
-    
-    "publish.ledger.transaction.created": {
-        "queue": "ledger.transaction.created",
-        "routing_key": "ledger.transaction.created"
-    },
-    "publish.ledger.entry.created": {
-        "queue": "ledger.entry.created",
-        "routing_key": "ledger.entry.created"
-    },
-    "publish.ledger.account.created": {
-        "queue": "ledger.account.created",
-        "routing_key": "ledger.account.created"
-    },
-
 
     # Inbound consumer tasks
     'consume.ledger.*': {'queue': 'ledger.internal'},
@@ -178,8 +152,7 @@ class EventRouter(bootsteps.ConsumerStep):
             event_map = {
                 'Identity_service.customer.created': 'consume.ledger.customer.created',
                 'Identity_service.user.logged_in':   'consume.ledger.user.logged_in',
-                'account_service.SavingsAccount.created': 'consume.ledger.SavingsAccount.created',
-                'account_service.currentAccount.created': 'consume.ledger.CurrentAccount.created',
+                'account_service.BankAccount.created': 'consume.ledger.BankAccount.created',
                 'payment.payment.completed': 'consume.ledger.payment.completed',
                 'payment.card.charge': 'consume.ledger.card.charge',
                 'payment.loan.updated': 'consume.ledger.loan.updated',

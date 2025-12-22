@@ -19,11 +19,52 @@ from django.db import transaction
 #ACCOUNT IDENTITY API VIEWS
 
 
+
+class CustomerRegisterView(APIView):
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        # Use the correct Serializer class name
+        serializer = CustomerIdentitySerializer(data=request.data)
+        
+        # 1. Validate
+        serializer.is_valid(raise_exception=True)
+
+        # 2. Save (Calls serializer.create() internally with validated_data)
+        # ⚠️ IMPORTANT: This returns the 'CustomerIdentity' profile instance, NOT the User!
+        customer_profile = serializer.save()
+        
+        # 3. Get the actual User object from the relationship
+        user = customer_profile.user
+
+        # 4. Prepare data for Celery
+        # We access attributes from 'user', not 'customer_profile'
+        user_data = {
+            'username': str(user.username),
+            'id': str(user.id),
+            'email': str(user.email),
+            'first_name': str(user.first_name),
+            'last_name': str(user.last_name),
+            # You can also include profile data if needed
+            'phone': str(customer_profile.phone)
+        }
+
+        # 5. Trigger Async Task
+        # Use .delay() or .apply_async()
+        publish_customer_created.apply_async(args=[user_data])
+        
+        return Response({
+            'status': 'success', 
+            'message': 'Account created successfully',
+            'user_id': user.id 
+        }, status=status.HTTP_201_CREATED)
+
+
+
 class CustomerRegisterView(APIView):
     permission_classes = [AllowAny]  # Allow unrestricted access
     queryset = user.objects.all()
     
-    @transaction.atomic
     def post(self, request):
         serializer = CustomerIdentitySerializer(data=request.data)
         serializer.is_valid(raise_exception=True)  # Validate the data
@@ -38,9 +79,8 @@ class CustomerRegisterView(APIView):
             return Response({'status': 'failed', 'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
         
         # Save the user (handled by the serializer)
-        serializer.create(serializer.validated_data)
-        
-        user_info = get_object_or_404(user, username=serializer.validated_data['username'])
+        user_info = serializer.create(serializer.validated_data)
+ 
         user_data = {
             'username': str(user_info.username),
             "id": str(user_info.id),
@@ -48,68 +88,43 @@ class CustomerRegisterView(APIView):
         }
         # Create a profile for the user
         #user.objects.create(user=user)
-        publish_customer_created.apply_async(args=[user_data], countdown=10)
+        publish_customer_created.apply_async(args=[user_data])
         
         return Response({'status': 'success', 'message': 'Account created successfully'}, status=status.HTTP_201_CREATED)
-  
-class AccountantRegisterView(APIView):
+
+
+
+class StaffRegisterView(APIView):
     permission_classes = [AllowAny]  # Allow unrestricted access
     queryset = user.objects.all()
     
     def post(self, request):
-        serializer = AccountantSerializer(data=request.data)
+        serializer = CustomerIdentitySerializer(data=request.data)
         serializer.is_valid(raise_exception=True)  # Validate the data
 
+        # Check if email exists in username or email fields
+        if user.objects.filter(username=serializer.validated_data['username']).exists():
+            serializer.add_error('message', 'This username is already taken')
+            return Response({'status': 'failed', 'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+            
+        if user.objects.filter(email=serializer.validated_data['email']).exists():
+            serializer.add_error('message', 'This email is already taken')
+            return Response({'status': 'failed', 'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        
         # Save the user (handled by the serializer)
-        serializer.create(serializer.validated_data)
-        user_info = get_object_or_404(user, username=serializer.validated_data['username'])
-        user_data = {
-            'username': str(user_info.username),
-            "id": str(user_info.id),
-        }
-        publish_staff_created.apply_async(args=[user_data], countdown=10)
-
-        return Response({'status': 'success', 'message': 'Staff Account created successfully'}, status=status.HTTP_201_CREATED)
-
-class AccountOfficerRegisterView(APIView):
-    permission_classes = [AllowAny]  # Allow unrestricted access
-    queryset = user.objects.all()
-    
-    def post(self, request):
-        serializer = AccountOfficerSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)  # Validate the data
-
-        # Save the user (handled by the serializer)
-        serializer.create(serializer.validated_data)
-        user_info = get_object_or_404(user, username=serializer.validated_data['username'])
-        user_data = {
-            'username': str(user_info.username),
-            "id": str(user_info.id),
-        }
-        publish_staff_created.apply_async(args=[user_data], countdown=10)
-
-        return Response({'status': 'success', 'message': 'Staff Account created successfully'}, status=status.HTTP_201_CREATED)
-    
-class ITRegisterView(APIView):
-    permission_classes = [AllowAny]  # Allow unrestricted access
-    queryset = user.objects.all()
-
-    def post(self, request):
-        serializer = ITSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)  # Validate the data
-
-        # Save the user (handled by the serializer)
-        serializer.create(serializer.validated_data)
-        user_info = get_object_or_404(user, username=serializer.validated_data['username'])
-        user_data = {
-            'username': str(user_info.username),
-            "id": str(user_info.id),
-        }
-        publish_staff_created.apply_async(args=[user_data], countdown=10)
-
-        return Response({'status': 'success', 'message': 'Staff Account created successfully'}, status=status.HTTP_201_CREATED)
+        user_info = serializer.create(serializer.validated_data)
  
- 
+        user_data = {
+            'username': str(user_info.username),
+            "id": str(user_info.id),
+            "email": str(user_info.email)
+        }
+        # Create a profile for the user
+        #user.objects.create(user=user)
+        publish_staff_created.apply_async(args=[user_data])
+        
+        return Response({'status': 'success', 'message': 'Account created successfully'}, status=status.HTTP_201_CREATED)
+
 class LoginView(APIView):
     permission_classes = [AllowAny]  # Allow unrestricted access
     queryset = user.objects.all()  
@@ -138,7 +153,7 @@ class LoginView(APIView):
                     'username': str(user_.username),
                     "user_id": str(user_.id),
                 }
-                publish_user_loggedIn.apply_async(args=[user_data], countdown=10)
+                publish_user_loggedIn.apply_async(args=[user_data])
                 return Response({'status': 'success', 'message': 'Logged in successfully', "access_token": access_token, "refresh_token": str(refresh)}, status=status.HTTP_200_OK)
             else:
                 return Response({'status': 'failed', 'message': 'User account is inactive'}, status=status.HTTP_403_FORBIDDEN)
@@ -147,21 +162,18 @@ class LoginView(APIView):
         
 
 class LogoutView(APIView):
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
-
+    # Standard practice: POST for logout
     def post(self, request):
         try:
-            # Get the refresh token from request data
-            user = request.user.username
             refresh_token = request.data.get("refresh_token")
+            
             if refresh_token:
-                # Blacklist the refresh token
                 token = RefreshToken(refresh_token)
                 token.blacklist()
-                publish_user_loggedOut.apply_async(args=[user], countdown=10)
                 return Response({"message": "Logout successful"}, status=200)
+            
             return Response({"error": "No refresh token provided"}, status=400)
+            
         except Exception as e:
             return Response({"error": str(e)}, status=400)
         
@@ -184,38 +196,8 @@ class UserDetailView(generics.RetrieveAPIView):
                 "last_name": str(User.last_name),
                 "phone": str(User.phone),
                 "sex": str(User.sex),
-                "date_of_birth": str(User.date_of_birth),
                 "is_customer": str(User.is_customer),
             }
             
             return Response({"status": "success", "message": user_data}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-"""
-def customer_identity_detail(request, user_id):
-    customer = get_object_or_404(CustomerIdentity, id=user_id)
-    # Return a serialized response (e.g., using a Django Rest Framework Serializer)
-    data = {
-        "id": customer.id,
-        "email": customer.email,
-        "first_name": customer.first_name,
-        "last_name": customer.last_name,
-        # ... other fields
-    }
-    return Response(data)
-
-def staff_identity_detail(request, user_id):
-    staff = get_object_or_404(StaffIdentity, id=user_id)
-    # Return a serialized response (e.g., using a Django Rest Framework Serializer)
-    data = {
-        "id": staff.id,
-        "email": staff.email,
-        "first_name": staff.first_name,
-        "last_name": staff.last_name,
-        "position": staff.is_staff_type
-        # ... other fields
-    }
-    return Response(data)
-
-"""

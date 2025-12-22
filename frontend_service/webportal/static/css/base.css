@@ -1,0 +1,432 @@
+/* --- base.css --- */
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+:root {
+    /* Light Mode Color Palette */
+    --primary-green: #05CD99;
+    /* Arhan Financial Green */
+    --primary-dark: #1B2559;
+    /* Deep Blue/Black for headers */
+    --secondary-text: #A3AED0;
+    /* Gray text */
+    --bg-main: #F4F7FE;
+    /* Light gray background for dashboard */
+    --bg-white: #FFFFFF;
+    /* White for cards/sidebars */
+    --border-light: #ECECEC;
+    --shadow-card: 0px 18px 40px rgba(112, 144, 176, 0.12);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+}
+
+body {
+    background-color: var(--bg-main);
+    color: var(--primary-dark);
+}
+
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
+ul {
+    list-style: none;
+}
+
+
+/* --- Utility Classes --- */
+
+.text-green {
+    color: var(--primary-green);
+}
+
+.text-gray {
+    color: var(--secondary-text);
+}
+
+.flex {
+    display: flex;
+}
+
+.flex-col {
+    flex-direction: column;
+}
+
+.items-center {
+    align-items: center;
+}
+
+.justify-between {
+    justify-content: space-between;
+}
+
+.mb-4 {
+    margin-bottom: 1rem;
+}
+
+.mt-4 {
+    margin-top: 1rem;
+}
+
+.card {
+    background: var(--bg-white);
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: var(--shadow-card);
+}
+
+
+/* --- Form Styles (Shared) --- */
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--primary-dark);
+    font-weight: 500;
+}
+
+.form-input {
+    width: 100%;
+    padding: 1rem;
+    border-radius: 16px;
+    border: 1px solid var(--border-light);
+    outline: none;
+    font-size: 1rem;
+    color: var(--primary-dark);
+    transition: all 0.3s ease;
+}
+
+.form-input:focus {
+    border-color: var(--primary-green);
+}
+
+.btn-primary {
+    width: 100%;
+    padding: 1rem;
+    background-color: var(--primary-green);
+    color: white;
+    border: none;
+    border-radius: 16px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-primary:hover {
+    background-color: #04a57b;
+}
+
+
+/* --- Signup Page Specifics --- */
+
+.split-screen-container {
+    display: flex;
+    height: 100vh;
+    background-color: var(--bg-white);
+}
+
+.left-pane-image {
+    flex: 1;
+    /* Placeholder for the image in the screenshot. 
+       In a real app, you'd use: background-image: url('your-image.jpg'); */
+    background: linear-gradient(135deg, #4b2a5e, #9c4b7c);
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    align-items: flex-start;
+    padding: 40px;
+}
+
+.brand-logo-white {
+    color: white;
+    font-weight: 700;
+    font-size: 1.5rem;
+}
+
+.right-pane-form {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 80px;
+    max-width: 600px;
+}
+
+.signup-header {
+    margin-bottom: 2.5rem;
+}
+
+.signup-header h1 {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.input-with-icon {
+    position: relative;
+}
+
+.input-icon {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--secondary-text);
+    cursor: pointer;
+}
+
+
+/* --- Dashboard Specifics (Light Mode Layout) --- */
+
+.dashboard-container {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+}
+
+
+/* Sidebar */
+
+.sidebar {
+    width: 250px;
+    background-color: var(--bg-white);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: var(--shadow-card);
+    z-index: 10;
+}
+
+.brand-logo-dark {
+    color: var(--primary-dark);
+    font-weight: 700;
+    font-size: 1.5rem;
+    margin-bottom: 40px;
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    color: var(--secondary-text);
+    border-radius: 12px;
+    margin-bottom: 10px;
+    transition: all 0.2s;
+    font-weight: 500;
+}
+
+.menu-item.active,
+.menu-item:hover {
+    background-color: var(--bg-main);
+    color: var(--primary-dark);
+    font-weight: 600;
+}
+
+.menu-item i {
+    margin-right: 12px;
+    width: 20px;
+}
+
+
+/* Main Content Area */
+
+.main-content {
+    flex: 1;
+    padding: 30px;
+    overflow-y: auto;
+    background-color: var(--bg-main);
+}
+
+
+/* Dashboard Header */
+
+.dash-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.search-bar {
+    background: var(--bg-white);
+    padding: 10px 20px;
+    border-radius: 30px;
+    display: flex;
+    align-items: center;
+    box-shadow: var(--shadow-card);
+    width: 300px;
+}
+
+.search-bar input {
+    border: none;
+    outline: none;
+    margin-left: 10px;
+    color: var(--primary-dark);
+    width: 100%;
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    background: var(--bg-white);
+    padding: 8px 16px;
+    border-radius: 30px;
+    box-shadow: var(--shadow-card);
+}
+
+.user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: #ddd;
+    margin-right: 10px;
+}
+
+
+/* Dashboard Grid Layout */
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: auto auto;
+    gap: 20px;
+}
+
+
+/* Grid Areas Defining */
+
+.col-span-1 {
+    grid-column: span 1;
+}
+
+.col-span-2 {
+    grid-column: span 2;
+}
+
+.col-span-3 {
+    grid-column: span 3;
+}
+
+.row-span-2 {
+    grid-row: span 2;
+}
+
+
+/* Dashboard Widgets */
+
+.credit-card-widget {
+    background: linear-gradient(135deg, #2c3e50, #4b79a1);
+    color: white;
+    height: 220px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.placeholder-chart {
+    height: 180px;
+    background-color: #f0f5ff;
+    border: 2px dashed #d0d7e8;
+    border-radius: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--secondary-text);
+    margin-top: 15px;
+}
+
+.stat-card {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+.stat-card.purple {
+    background: linear-gradient(135deg, #9F44D3, #E24E9D);
+    color: white;
+}
+
+.stat-card.blue {
+    background: linear-gradient(135deg, #4A58E7, #7492F4);
+    color: white;
+}
+
+.stat-card.orange {
+    background: linear-gradient(135deg, #FF6B6B, #FFB37B);
+    color: white;
+}
+
+.stat-card h3 {
+    font-size: 0.9rem;
+    font-weight: 500;
+    opacity: 0.9;
+}
+
+.stat-card h2 {
+    font-size: 1.8rem;
+    margin: 10px 0;
+}
+
+.new-account-btn {
+    background: transparent;
+    border: 1px solid var(--primary-dark);
+    padding: 10px 20px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+
+/* Quick Transfer & Transactions */
+
+.transfer-input-group {
+    background-color: var(--bg-main);
+    padding: 15px;
+    border-radius: 15px;
+    margin: 20px 0;
+}
+
+.transaction-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.trans-icon {
+    width: 40px;
+    height: 40px;
+    background-color: var(--bg-main);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 15px;
+}
+
+.status-badge {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+}
+
+.status-success {
+    background: #E7F8F0;
+    color: var(--primary-green);
+}
+
+.status-pending {
+    background: #FFF6E6;
+    color: #FFB37B;
+}

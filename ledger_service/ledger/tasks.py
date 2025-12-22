@@ -8,6 +8,7 @@ from ledger.models import *
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth import get_user_model
 from ledger.models import *
+import time
 
 
 User = get_user_model()
@@ -28,12 +29,16 @@ def consume_customer_created(self, data):
     user_id_value = data.get("id")
     email_value = data.get("email")
     username = data.get("username")
+    first_name = data.get("first_name", "")
+    last_name = data.get("last_name", "")
     user, created = User.objects.get_or_create(
         id=user_id_value,
         defaults={
             'username': username, # or whatever unique field you use
             'email': email_value,
-            'is_active': True
+            'is_active': True,
+            'first_name': first_name,
+            'last_name': last_name,
         }
     )
 
@@ -50,29 +55,17 @@ def consume_user_logged_in(self, data):
         print(f"No account found for user {user_id_value}")
 
 
-@shared_task(name="consume.ledger.SavingsAccount.created", bind=True, acks_late=True)
-def consume_SavingsAccount_created(self, data):
+@shared_task(name="consume.ledger.BankAccount.created", bind=True, acks_late=True)
+def consume_BankAccount_created(self, data):
     user_id_value = data.get("user_id")
     currency = data.get("currency")
-    account_type = "savings"
-    if LedgerAccount.objects.filter(Q (user_id=user_id_value) & Q(account_type=account_type)).exists():
+    account_number = data.get("account_number")
+    if LedgerAccount.objects.filter(Q (user_id=user_id_value) & Q(account_number=account_number)).exists():
         print(f"customer {user_id_value} already has an account.")
     else:
-        LedgerAccount.objects.create(user_id=user_id_value, currency=currency,
-                                     account_type=account_type)
-    
-@shared_task(name="consume.ledger.CurrentAccount.created", bind=True, acks_late=True)
-def consume_CurrentAccount_created(self, data):
-    user_id_value = data.get("user_id")
-    currency = data.get("currency")
-    account_type = "current"
-    if LedgerAccount.objects.filter(Q (user_id=user_id_value) & Q(account_type=account_type)).exists():
-        print(f"customer {user_id_value} already has an account.")
-    else:
-        LedgerAccount.objects.create(user_id=user_id_value, currency=currency,
-                                     account_type=account_type)
-    
-
+        LedgerAccount.objects.create(user_id=user_id_value, currency=currency, account_number=account_number)
+        
+        
 @shared_task(name="consume.ledger.loan.updated", bind=True, acks_late=True)
 def consume_loan_updated(self, data):
     """
@@ -204,8 +197,26 @@ def consume_payment_completed(self, data):
             amount=amount,
             currency=currency,
         )
+        # 2. STOP THE CLOCK
+        end_time = time.time()
+        
+        # 3. CALCULATE DURATION
+        start_time = data.get("initiated_at_ts")
+        
+        if start_time:
+            # Calculate difference
+            duration = end_time - float(start_time)
+            
+            # Convert to milliseconds for easier reading
+            duration_ms = duration * 1000
+            
+            print(f"==========================================")
+            print(f"[⏱️] END-TO-END TRANSACTION TIME: {duration_ms:.2f} ms")
+            print(f"==========================================")
+        else:
+            print("[⚠️] No timestamp found in event data")
 
-    print(f"Recorded ledger transaction {ref} successfully.")
+        print(f"Recorded ledger transaction {ref} successfully.")
 
 
 @shared_task(name="consume.ledger.card.charge", bind=True, acks_late=True)
@@ -276,7 +287,7 @@ def _publish_event(task_self, event_data, routing_key):
         print(f"Published event: {routing_key} -> {event_data}")
     except Exception as exc:
         # Retry the task if publishing fails (e.g., broker down)
-        raise task_self.retry(exc=exc, countdown=60)
+        raise task_self.retry(exc=exc)
 
 
 @shared_task(name="publish.ledger.account.created", bind=True)

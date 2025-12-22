@@ -37,7 +37,7 @@ def _publish_event(task_self, event_data, routing_key):
         print(f"Published event: {routing_key} -> {event_data}")
     except Exception as exc:
         # Retry the task if publishing fails (e.g., broker down)
-        raise task_self.retry(exc=exc, countdown=60)
+        raise task_self.retry(exc=exc)
         
 
 

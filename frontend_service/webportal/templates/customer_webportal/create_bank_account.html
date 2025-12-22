@@ -1,0 +1,149 @@
+{% extends 'dashboard_layout.html' %}
+
+{% block title %}Open New Account - Arhan Financial{% endblock %}
+{% block page_heading %}Open Account{% endblock %}
+
+{% block extra_css %}
+<style>
+    .account-creation-container {
+        max-width: 550px;
+        margin: 0 auto;
+    }
+
+    /* Visual Header Area */
+    .account-visual-header {
+        background: linear-gradient(135deg, #059669 0%, #34D399 100%); /* Emerald Gradient */
+        border-radius: 20px;
+        padding: 30px;
+        text-align: center;
+        color: white;
+        margin-bottom: 30px;
+        box-shadow: 0 10px 25px -5px rgba(5, 150, 105, 0.4);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .visual-icon {
+        font-size: 3rem;
+        margin-bottom: 10px;
+        background: rgba(255, 255, 255, 0.2);
+        width: 80px;
+        height: 80px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        backdrop-filter: blur(5px);
+    }
+
+    /* Form Styling */
+    .form-group { margin-bottom: 20px; text-align: left; }
+    .form-group label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: var(--primary-dark);
+        font-size: 0.9rem;
+    }
+    
+    /* Target Django Widgets */
+    .form-group input, .form-group select, .form-group textarea {
+        width: 100%;
+        padding: 12px 15px;
+        border: 1px solid var(--border-light);
+        border-radius: 12px;
+        font-size: 1rem;
+        background: white;
+        transition: all 0.2s;
+        color: var(--primary-dark);
+    }
+    
+    .form-group input:focus, .form-group select:focus {
+        border-color: var(--primary-green);
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    }
+
+    /* Benefits List */
+    .benefits-list {
+        margin-top: 30px;
+        background: #F9FAFB;
+        border-radius: 12px;
+        padding: 20px;
+        border: 1px solid var(--border-light);
+    }
+    .benefit-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+        font-size: 0.9rem;
+        color: var(--secondary-text);
+    }
+    .benefit-item i { color: var(--primary-green); }
+    .benefit-item:last-child { margin-bottom: 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+    <div class="col-span-4">
+        
+        <div class="card account-creation-container">
+            
+            <div class="account-visual-header">
+                <div style="position: absolute; top: -20px; right: -20px; width: 100px; height: 100px; background: rgba(255,255,255,0.1); border-radius: 50%;"></div>
+                <div style="position: absolute; bottom: -30px; left: -30px; width: 150px; height: 150px; background: rgba(255,255,255,0.1); border-radius: 50%;"></div>
+
+                <div class="visual-icon">
+                    <i class="fas fa-piggy-bank"></i>
+                </div>
+                <h2 style="font-size: 1.5rem; font-weight: 700;">Open New Account</h2>
+                <p style="opacity: 0.9; font-size: 0.95rem;">Start saving or managing funds instantly.</p>
+            </div>
+
+            <form method="post">
+                {% csrf_token %}
+                
+                {% for field in form %}
+                    <div class="form-group">
+                        <label>{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.help_text %}
+                            <small style="color: gray; display: block; margin-top: 5px;">{{ field.help_text }}</small>
+                        {% endif %}
+                        {% if field.errors %}
+                            <small style="color: #DC2626;">{{ field.errors.0 }}</small>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+
+                <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; padding: 14px; margin-top: 10px;">
+                    <i class="fas fa-check-circle"></i> Create Account
+                </button>
+            </form>
+
+            <div class="benefits-list">
+                <h4 style="font-size: 0.9rem; font-weight: 700; margin-bottom: 15px; color: var(--primary-dark);">Account Benefits</h4>
+                <div class="benefit-item">
+                    <i class="fas fa-bolt"></i> <span>Instant activation & zero maintenance fees.</span>
+                </div>
+                <div class="benefit-item">
+                    <i class="fas fa-chart-line"></i> <span>Competitive interest rates on savings.</span>
+                </div>
+                <div class="benefit-item">
+                    <i class="fas fa-shield-alt"></i> <span>Secure 24/7 fraud monitoring.</span>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 25px;">
+                <a href="{% url 'dashboard' %}" style="color: var(--secondary-text); font-size: 0.9rem; text-decoration: none;">
+                    <i class="fas fa-arrow-left"></i> Cancel and go back
+                </a>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+{% endblock %}

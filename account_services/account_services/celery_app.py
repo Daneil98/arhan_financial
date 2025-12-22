@@ -50,25 +50,11 @@ app.conf.task_queues = [
         durable=True
     ),
     
-    
-    
-    Queue('ledger.account.created', ledger_exchange, routing_key='ledger.account.created'),
-    
     #OUTBOUND EVENTS
     Queue('account_service.account.created',account_exchange,  routing_key='account_service.account.created'),
-    #Queue('account_service.user.logged_in',account_exchange,  routing_key='account_service.user.logged_in'),
-    Queue('account_service.SavingsAccount.created',account_exchange, routing_key='account_service.SavingsAccount.created'),
-    Queue('account_service.currentAccount.created',account_exchange, routing_key='account_service.currentAccount.created'),
+    Queue('account_service.BankAccount.created',account_exchange, routing_key='account_service.BankAccount.created'),
     Queue('account_service.card.created',account_exchange,  routing_key='account_service.card.created'),
-    #Queue('account_service.user.created',account_exchange,  routing_key='account_service.user.created'),
-    Queue('account_service.loan.applied',account_exchange,  routing_key='account_service.loan.applied'),
     Queue('account_service.loan.updated',account_exchange,  routing_key='account_service.loan.updated'),
-    Queue('account_service.ticket.created', identity_exchange, routing_key='account_service.ticket.created'),
-    Queue('account_service.ticket.updated', identity_exchange, routing_key='account_service.ticket.updated'),
-
-    Queue('account_service.verify.card', account_exchange, routing_key='account_service.verify.card'),
-    Queue('account_service.verify.pin', account_exchange, routing_key='account_service.verify.pin'),
-    Queue('account_service.get.balance', account_exchange, routing_key='account_service.get.balance')
 ]
 
 
@@ -79,26 +65,11 @@ app.conf.task_routes = {
     'publish.account_service.*': {'queue': 'account_service.internal'},
     'publish.account_service.account.created': {'queue': 'account_service.account.created',
                                                 'routing_key': 'account_service.account.created'},
-    'publish.account_service.SavingsAccount.created': {'queue': 'account_service.SavingsAccount.created',
-                                                       'routing_key': 'account_service.SavingsAccount.created'},
-    'publish.account_service.currentAccount.created': {'queue': 'account_service.currentAccount.created',
-                                                       'routing_key': 'account_service.currentAccount.created'},
-    'publish.account_service.loan.applied': {'queue': 'account_service.loan.applied',
-                                                       'routing_key': 'account_service.loan.applied'},
+    'publish.account_service.BankAccount.created': {'queue': 'account_service.BankAccount.created',
+                                                       'routing_key': 'account_service.BankAccount.created'},
     'publish.account_service.loan.updated': {'queue': 'account_service.loan.updated',
                                                        'routing_key': 'account_service.loan.updated'},
-    'publish.account_service.card.created': {'queue': 'account_service.card.created',
-                                                       'routing_key': 'account_service.card.created'},
-    'publish.account_service.verify.card': {'queue': 'account_service.verify.card',
-                                                    'routing_key': 'account_service.verify.card'},
-    'publish.account_service.verify.pin': {'queue': 'account_service.verify.pin',
-                                                    'routing_key': 'account_service.verify.pin'},
-    'publish.account_service.ticket.created': {'queue': 'account_service.ticket.created', 
-                                                        'routing_key': 'account_service.ticket.created'},
-    'publish.account_service.ticket.updated': {'queue': 'account_service.ticket.updated', 
-                                                        'routing_key': 'account_service.ticket.updated'},
-    'publish.account_service.get.balance': {'queue': 'account_service.get.balance',
-                                                        'routing_key': 'account_service.get.balance'},
+
     
     #Inbound Consumer Tasks
     """
@@ -198,8 +169,6 @@ class EventRouter(bootsteps.ConsumerStep):
         # Always ack to prevent the message from blocking the queue
         message.ack()
         
-
-
 
 
 app.steps['consumer'].add(EventRouter)

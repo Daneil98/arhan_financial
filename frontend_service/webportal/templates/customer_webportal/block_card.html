@@ -1,0 +1,108 @@
+{% extends 'dashboard_layout.html' %}
+
+{% block title %}Block Card - Arhan Financial{% endblock %}
+{% block page_heading %}Card Security{% endblock %}
+
+{% block extra_css %}
+<style>
+    .danger-card {
+        background: #FFF5F5;
+        border: 1px solid #FEB2B2;
+        border-radius: 20px;
+        padding: 30px;
+        text-align: center;
+    }
+    
+    .icon-danger-big {
+        font-size: 3rem;
+        color: #E53E3E;
+        margin-bottom: 20px;
+        background: #FED7D7;
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .form-container {
+        max-width: 500px;
+        margin: 0 auto;
+        text-align: left;
+    }
+
+    /* Form specific styles to match your theme */
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; color: var(--secondary-text); margin-bottom: 8px; font-size: 0.9rem; }
+    .form-group input, .form-group select, .form-group textarea {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid var(--border-light);
+        border-radius: 12px;
+        font-size: 1rem;
+        background: white;
+    }
+    
+    .btn-danger-solid {
+        background-color: #E53E3E;
+        color: white;
+        width: 100%;
+        padding: 12px;
+        border-radius: 12px;
+        font-weight: 600;
+        border: none;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    .btn-danger-solid:hover { background-color: #C53030; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+    
+    <div class="col-span-4" style="display: flex; justify-content: center;">
+        <div class="card" style="width: 100%; max-width: 600px;">
+            
+            <div class="danger-card">
+                <div class="icon-danger-big">
+                    <i class="fas fa-credit-card"></i>
+                </div>
+                <h2 style="color: #C53030; font-weight: 700; margin-bottom: 10px;">Block Your Card</h2>
+                <p style="color: #742A2A; font-size: 0.95rem; margin-bottom: 30px;">
+                    Temporarily freeze your card to prevent any new transactions. 
+                    You can unblock it later if you find it.
+                </p>
+
+                <div class="form-container">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        {% for field in form %}
+                            <div class="form-group">
+                                <label>{{ field.label }}</label>
+                                {{ field }}
+                                {% if field.errors %}
+                                    <small style="color: #E53E3E;">{{ field.errors.0 }}</small>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+
+                        <button type="submit" class="btn-danger-solid">
+                            <i class="fas fa-lock" style="margin-right: 8px;"></i> Block Card Now
+                        </button>
+                    </form>
+                    
+                    <div style="text-align: center; margin-top: 20px;">
+                        <a href="{% url 'activity' %}" style="color: var(--secondary-text); font-size: 0.9rem;">Cancel and go back</a>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

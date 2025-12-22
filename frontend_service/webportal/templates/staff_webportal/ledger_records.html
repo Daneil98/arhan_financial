@@ -1,0 +1,115 @@
+{% extends 'staff_dashboard_layout.html' %}
+{% load humanize %}
+
+{% block title %}Bank Ledger - Arhan Financial{% endblock %}
+{% block page_heading %}General Ledger Records{% endblock %}
+
+{% block extra_css %}
+<style>
+    .book-container { display: flex; gap: 20px; align-items: flex-start; }
+    .book-side { flex: 1; background: var(--bg-white); border-radius: 16px; box-shadow: var(--shadow-card); padding: 0; overflow: hidden; }
+    
+    .book-header { padding: 15px 20px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; font-size: 0.9rem; display: flex; justify-content: space-between; }
+    
+    /* Visual distinction for Debit (Money Out/Assets) vs Credit (Money In/Liabilities) */
+    .header-debit { background-color: #FFF5F5; color: #9B2C2C; border-bottom: 2px solid #E53E3E; } 
+    .header-credit { background-color: #F0FDF4; color: #065F46; border-bottom: 2px solid #10B981; } 
+
+    .book-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+    .book-table th { text-align: left; padding: 12px 15px; background: #fafafa; border-bottom: 1px solid var(--border-light); font-weight: 600; color: #64748B; }
+    .book-table td { padding: 10px 15px; border-bottom: 1px solid var(--border-light); font-family: 'Courier New', monospace; vertical-align: middle; }
+    
+    .date-cell { font-size: 0.75rem; color: #94A3B8; font-family: sans-serif !important; }
+    .amount-cell { text-align: right; font-weight: 600; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="flex justify-between items-center">
+        <div>
+            <h3 style="font-size: 1.1rem; font-weight: 700;">Master General Ledger</h3>
+            <p class="text-gray" style="font-size: 0.9rem;">Double-entry bookkeeping records.</p>
+        </div>
+        <button class="btn-outline" style="border: 1px solid var(--border-light); padding: 8px 20px; border-radius: 8px; font-weight: 600;">
+            <i class="fas fa-download"></i> Export CSV
+        </button>
+    </div>
+</div>
+
+<div class="book-container">
+    
+    <div class="book-side">
+        <div class="book-header header-debit">
+            <span><i class="fas fa-minus-circle"></i> Debits (DR)</span>
+            <span>{{ debits|length }} Records</span>
+        </div>
+        <table class="book-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Ref ID</th>
+                    <th style="text-align: right;">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in debits %}
+                <tr>
+                    <td class="date-cell">
+                        {{ entry.created_at|slice:":10" }}<br>
+                        {{ entry.created_at|slice:"11:16" }}
+                    </td>
+                    <td>
+                        {{ entry.transaction_id|slice:":8" }}...
+                    </td>
+                    <td class="amount-cell" style="color: #9B2C2C;">
+                        {{ entry.currency }} {{ entry.amount|intcomma }}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3" style="text-align: center; padding: 20px; color: gray;">No Debit records found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="book-side">
+        <div class="book-header header-credit">
+            <span><i class="fas fa-plus-circle"></i> Credits (CR)</span>
+            <span>{{ credits|length }} Records</span>
+        </div>
+        <table class="book-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Ref ID</th>
+                    <th style="text-align: right;">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in credits %}
+                <tr>
+                    <td class="date-cell">
+                        {{ entry.created_at|slice:":10" }}<br>
+                        {{ entry.created_at|slice:"11:16" }}
+                    </td>
+                    <td>
+                        {{ entry.transaction_id|slice:":8" }}...
+                    </td>
+                    <td class="amount-cell" style="color: #065F46;">
+                        {{ entry.currency }} {{ entry.amount|intcomma }}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3" style="text-align: center; padding: 20px; color: gray;">No Credit records found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,117 @@
+{% extends 'dashboard_layout.html' %}
+
+{% block title %}Freeze Account - Arhan Financial{% endblock %}
+{% block page_heading %}Security Settings{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Styling for the Emergency content */
+    .emergency-box {
+        border-left: 5px solid #E53E3E;
+        padding-left: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .list-warning ul {
+        list-style: none;
+        padding: 0;
+        margin-top: 15px;
+    }
+    .list-warning li {
+        position: relative;
+        padding-left: 25px;
+        margin-bottom: 10px;
+        color: var(--secondary-text);
+        font-size: 0.9rem;
+    }
+    .list-warning li::before {
+        content: '\f071'; /* Warning Icon */
+        font-family: 'Font Awesome 6 Free';
+        font-weight: 900;
+        position: absolute;
+        left: 0;
+        color: #E53E3E;
+    }
+
+    /* Form styling reuse */
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; font-weight: 600; margin-bottom: 8px; color: var(--primary-dark); }
+    .form-group input, .form-group textarea, .form-group select {
+        width: 100%; padding: 12px; border: 1px solid var(--border-light);
+        border-radius: 10px; font-size: 1rem;
+    }
+
+    .btn-freeze {
+        background-color: #2D3748; /* Dark Grey/Black for serious action */
+        color: white;
+        width: 100%;
+        padding: 15px;
+        border-radius: 12px;
+        font-weight: 700;
+        border: 2px solid #2D3748;
+        cursor: pointer;
+        display: flex; justify-content: center; align-items: center; gap: 10px;
+    }
+    .btn-freeze:hover { background-color: #000; border-color: #000; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+
+    <div class="col-span-4" style="max-width: 700px; margin: 0 auto;">
+        <div class="card">
+            
+            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 25px; border-bottom: 1px solid var(--border-light); padding-bottom: 20px;">
+                <div style="background: #FFF5F5; width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #E53E3E; font-size: 1.5rem;">
+                    <i class="fas fa-user-lock"></i>
+                </div>
+                <div>
+                    <h2 style="font-size: 1.3rem; font-weight: 700;">Block Entire Account</h2>
+                    <p style="color: var(--secondary-text); font-size: 0.9rem;">Emergency Security Protocol</p>
+                </div>
+            </div>
+
+            <div class="emergency-box">
+                <h3 style="color: #E53E3E; font-weight: 600; font-size: 1.1rem;">Are you absolutely sure?</h3>
+                <div class="list-warning">
+                    <ul>
+                        <li>Your login access will be immediately revoked.</li>
+                        <li>All active debit/credit cards will be frozen.</li>
+                        <li>Incoming and outgoing transfers will be rejected.</li>
+                        <li>You will need to contact customer support to restore access.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <form method="post">
+                {% csrf_token %}
+                
+                {% for field in form %}
+                    <div class="form-group">
+                        <label>{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.help_text %}
+                            <small style="color: gray; display: block; margin-top: 5px;">{{ field.help_text }}</small>
+                        {% endif %}
+                        {% if field.errors %}
+                            <small style="color: #E53E3E;">{{ field.errors.0 }}</small>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+
+                <button type="submit" class="btn-freeze">
+                    <i class="fas fa-power-off"></i> Confirm Account Freeze
+                </button>
+            </form>
+
+        </div>
+        
+        <div style="text-align: center; margin-top: 20px;">
+            <p style="color: var(--secondary-text);">Clicked by mistake? <a href="{% url 'dashboard' %}" style="color: var(--primary-green); font-weight: 600;">Return to Dashboard</a></p>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

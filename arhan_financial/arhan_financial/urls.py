@@ -18,12 +18,10 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from Identity_service import views
 
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path("", views.index, name="index"),
     path('Identity_service/', include('Identity_service.urls')),
     path('Identity_service_api/', include('Identity_service.api.urls', namespace='Identity_service_api')),
 ] + static(settings.STATIC_URL,document_root=settings.STATIC_ROOT)

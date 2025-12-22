@@ -1,17 +1,20 @@
 from django.db import transaction
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
-from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.hashers import make_password, check_password
 from ..models import *
 from ..tasks import *
 from rest_framework import status
 from .serializers import *
 from ..generator import *
-from ..permissions import *
+
+from ..utils import encrypt_data, decrypt_data
+
+
 
 class DashboardView(APIView):
     authentication_classes = [JWTAuthentication]
@@ -20,100 +23,101 @@ class DashboardView(APIView):
 
     def get(self, request, format=None):
         user_id_value = request.user.id
+        account = BankAccount.objects.filter(user_id=user_id_value).first()
 
-        savings_account = SavingsAccount.objects.filter(user_id=user_id_value).first()
-        current_account = CurrentAccount.objects.filter(user_id=user_id_value).first()
-        card = Card.objects.filter(user_id=user_id_value).first()
-        loan = Loan.objects.filter(user_id=user_id_value).first()
-
+        if account is None:
+            return Response({}, status=200)
+        
+        if account.active == False:
+            return Response ({'message': 'Account is already blocked.'}, status=status.HTTP_403_FORBIDDEN)
+    
         data = {
-            'savings_account': SavingsAccountSerializer(savings_account).data if savings_account else None,
-            'current_account': CurrentAccountSerializer(current_account).data if current_account else None,
-            'card': CardSerializer(card).data if card else None,
-            'loan': LoanSerializer(loan).data if loan else None,
+            'id': account.id,
+            'username': request.user.username,
+            'first_name': request.user.first_name,
+            'last_name': request.user.last_name,
+            'email': request.user.email,
+            'account_number': account.account_number,
+            'balance': account.balance,
         }
         return Response(data, status=status.HTTP_200_OK)
-       
+    
 
-
-class CreateSavingsAccount(APIView):
-    serializer_class = SavingsAccountSerializer
+class CreateBankAccount(APIView):
+    serializer_class = BankAccountSerializer
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
-    queryset = SavingsAccount.objects.all()
+    queryset = BankAccount.objects.all()
     
-    @transaction.atomic
-    def post(self, request, format=None):
-        
-        serializer = SavingsAccountSerializer(data=request.data)   
-        if serializer.is_valid():
-                      
-            user_id_value = request.user.id
-            
-            print(user_id_value)
-            #user_id = serializer.validated_data["user_id"]
-            
-            if SavingsAccount.objects.filter(user_id=user_id_value).exists():
-                return Response({'message': 'You already have a savings account'}, 
-                                status= status.HTTP_409_CONFLICT)
-        
-            hashed_pin_value = make_password(serializer.validated_data["PIN"])
-            serializer.save(user_id = user_id_value, PIN=hashed_pin_value, account_number = generate_account_number())
-            acc_data = get_object_or_404(SavingsAccount, user_id=user_id_value)
-            
-            data = {
-                "user_id": acc_data.user_id,
-                "account_number": acc_data.account_number,
-                "balance": acc_data.balance,
-                "interest_rate": acc_data.interest_rate,
-                "PIN": acc_data.PIN,    
-                "currency": acc_data.currency,
-                "active": acc_data.active, # Assuming this field is appropriate for current account status
-                "created_at": acc_data.created_at.isoformat(),
-            }
-            publish_savingsAccount_created.apply_async(args=[data], countdown=10)
-        
-            return Response({'message': 'Savings account created successfully.'}, status=status.HTTP_201_CREATED)  
-            
-        else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-class CreateCurrentAccount(APIView):
-    serializer_class = CurrentAccountSerializer
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated, ]
-    queryset = CurrentAccount.objects.all()
-    
-    @transaction.atomic
     def post(self, request, format=None):
         
         user_id = request.user.id
-        serializer = CurrentAccountSerializer(data=request.data)
+        serializer = BankAccountSerializer(data=request.data)
         if serializer.is_valid():
-            if CurrentAccount.objects.filter(user_id = user_id).exists():
+            if BankAccount.objects.filter(Q(user_id = user_id) & Q(active=True)).exists():
                 return Response({'message': 'You already have a current account'}, 
                                 status= status.HTTP_409_CONFLICT)
-        
+
+            if BankAccount.objects.filter(Q(user_id = user_id) & Q(active=False)).exists():
+                return Response({'message': 'You have an inactive account. Please contact support.'}, status=status.HTTP_403_FORBIDDEN)
+            
             hashed_pin_value = make_password(serializer.validated_data["PIN"])
             
             serializer.save(user_id=user_id, PIN=hashed_pin_value, account_number = generate_account_number())
-            acc_data = get_object_or_404(CurrentAccount, user_id=user_id)
+            
+            acc_data = get_object_or_404(BankAccount, user_id=user_id)
              
             data = {
                 "user_id": acc_data.user_id,
                 "account_number": acc_data.account_number,
                 "balance": acc_data.balance,
-                #"PIN": acc_data.PIN,
                 "interest_rate": acc_data.interest_rate,
                 "currency": acc_data.currency,
                 "active": acc_data.active, # Assuming this field is appropriate for current account status
                 "created_at": acc_data.created_at.isoformat(),
             }
-            publish_currentAccount_created.apply_async(args=[data], countdown=10)
+            publish_BankAccount_created.apply_async(args=[data])
             return Response({'message': 'current account created successfully.'}, status=status.HTTP_201_CREATED)  
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class CreateCard(APIView):
+    serializer_class = pinserializer
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated, ]
+    queryset = Card.objects.all()
+    
+    def post(self, request, format=None):
+        user_id = request.user.id
+        serializer = pinserializer(data=request.data)
+        
+        if serializer.is_valid():
+            hashed_pin = make_password(str(serializer.validated_data["pin"]))
+            
+            acc = BankAccount.objects.filter(user_id=user_id).first()
+            if acc is None:
+                return Response({'message': 'No bank account found for this user.'}, 
+                                status=status.HTTP_404_NOT_FOUND)
+            
+            if Card.objects.filter(user_id=user_id, active=True).exists():  #check if user has an active card
+                return Response({'message': 'You already have an active card'}, status=status.HTTP_403_FORBIDDEN)
+            
+            if Card.objects.filter(user_id=user_id, active=False).exists():  #delete inactive card if it exists
+                Card.objects.filter(user_id=user_id, active=False).delete()
+            
+            Card.objects.create(
+                user_id=user_id,
+                card_number=encrypt_data(generate_card_number()), # Encrypted Card Number
+                cvv=encrypt_data(generate_cvv()),                 # Encrypted CVV
+                PIN= hashed_pin,                                  # Hashed Pin
+                bank_account=acc,
+            )
+            
+            return Response ({'message': 'Card created successfully.'}, status=status.HTTP_201_CREATED)
+        else:
+            return Response ({'message': 'Error creating card.'}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class CreateLoanApplication(APIView):
     serializer_class = LoanSerializer
@@ -127,32 +131,35 @@ class CreateLoanApplication(APIView):
         
         if serializer.is_valid():
             user_id = request.user.id
+            account_number = BankAccount.objects.filter(user_id=user_id).first().account_number
         
             if Loan.objects.filter(user_id=user_id, loan_status__in=["Pending", "approved"]).exists():
                 return Response({'message': 'You already have an existing loan or loan application'}, 
                                 status= status.HTTP_409_CONFLICT)
             else:
-                serializer.save(user_id =user_id, loan_status='pending', start_date=datetime.now())
-                
+                serializer.save(user_id =user_id, loan_status='pending', account_number=account_number)
                                        
-                loan_data = get_object_or_404(Loan, user_id=user_id)
-
-                data = {
-                    "loan_id": loan_data.loan_id,
-                    "user_id": loan_data.user_id,
-                    "amount": loan_data.amount,
-                    "currency": loan_data.currency,
-                    "duration": loan_data.duration,
-                    "loan_status": loan_data.loan_status,
-                    "start_date": loan_data.start_date.isoformat(),
-                                        
-                }
-                publish_loan_applied.apply_async(args=[data], countdown=10)
                 return Response({'message': 'Loan application submitted successfully.'},
                             status=status.HTTP_201_CREATED)    
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+class GetPendingLoans(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    
+    def get(request):
+        loans = Loan.objects.filter(loan_status='pending').count()
+
+        return Response(loans, status=200)
+    
+class GetPendingTickets(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    
+    def get(request):
+        tickets = IT_Tickets.objects.filter(resolved=False).count()
+        return Response(tickets, status=200)
 
 class GetAndUpdateLoan(APIView):    #CHECH THISS
     serializer_class = UpdateTicketSerializer
@@ -181,28 +188,24 @@ class GetAndUpdateLoan(APIView):    #CHECH THISS
                             status=status.HTTP_200_OK) 
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        
+    
+    @transaction.atomic  
     def post(self, request, format=None):
         serializer = UpdateLoanSerializer(data=request.data)
         
         if serializer.is_valid():
-            user_id = serializer.validated_data['user_id']
+            account_number = serializer.validated_data['account_number']
             loan_status = serializer.validated_data['status']
             
-            loan = get_object_or_404(Loan, user_id=user_id)
+            loan = get_object_or_404(Loan.objects.select_for_update(), account_number=account_number)
             
             if loan.loan_status in ['Rejected', 'Approved']:
-                return Response({'message': 'Loan has been handled'}, status=status.HTTP_200_OK)
+                return Response({'message': 'Loan has been handled'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
             
             loan.loan_status = loan_status
             loan.save()
             
-            acc = SavingsAccount.objects.filter(user_id=user_id).first()
-            account_type = 'savings'
-            
-            if acc is None:
-                acc = CurrentAccount.objects.filter(user_id=user_id).first()
-                account_type = 'current'
+            acc = BankAccount.objects.filter(account_number=account_number).first()
                 
             if acc is None:
                 return Response({"error": "No account found for this user."}, status=404)
@@ -216,10 +219,8 @@ class GetAndUpdateLoan(APIView):    #CHECH THISS
                 "loan_id": loan.loan_id,
                 "status": loan.loan_status,
                 "payee_account_id": acc.account_number,
-                "account_type": account_type,
             }
-            
-            print("About to publish task")
+
             publish_loan_updated.apply_async(args=[data], queue=
                                              'account_service.internal')
             print('task published')
@@ -227,7 +228,6 @@ class GetAndUpdateLoan(APIView):    #CHECH THISS
                             status=status.HTTP_200_OK)  
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 
 class LoanDetailView(APIView):
@@ -238,26 +238,38 @@ class LoanDetailView(APIView):
 
     def get(self, request, format=None):
         user_id = request.user.id
-        loan = get_object_or_404(Loan, user_id=user_id)
+        loan = Loan.objects.filter(user_id=user_id).first()
         data = {
                 'user id': loan.user_id,
                 'amount': loan.amount,
-                'interest rate': loan.interest_rate,
+                'amount_repayable': loan.amount_to_repay,
+                'monthly_repayment': loan.monthly_repayment,
+                'interest_rate': loan.interest_rate,
                 'duration': loan.duration,
-                'loan status': loan.loan_status,
+                'loan_status': loan.loan_status,
         }
         return Response(data, status=status.HTTP_200_OK)
-    
-    
-class CurrentAccountDetails(APIView):
-    serializer_class = CurrentAccountSerializer
+
+class BankPoolDetails(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
-    queryset = CurrentAccount.objects.all()
+    queryset = BankPool.objects.all()
+    
+    def get(self, request, format=None):
+        bank_pool = BankPool.objects.first()
+        
+        total_funds = bank_pool.total_funds
+        
+        return Response(total_funds, status=status.HTTP_200_OK)  
+    
+class BankAccountDetails(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    queryset = BankAccount.objects.all()
     
     def get(self, request, format=None):
         user_id = request.user.id
-        account = get_object_or_404(CurrentAccount, user_id=user_id)
+        account = BankAccount.objects.filter(user_id=user_id).first()
         ca = {
                 'id': account.id,
                 'user id': account.user_id,
@@ -269,79 +281,29 @@ class CurrentAccountDetails(APIView):
         return Response(ca, status=status.HTTP_200_OK)
   
   
-class SavingsAccountDetails(APIView):
-    serializer_class = SavingsAccountSerializer
+class CardDetails(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
-    queryset = SavingsAccount.objects.all()
-    
-    def get(self, request, format=None):
-        user = request.user
-        user_id = user.id
-        account = get_object_or_404(SavingsAccount, user_id=user_id)
-        account = {
-                'id': account.id,
-                'user id': account.user_id,
-                'account number': account.account_number,
-                'balance': account.balance,
-                'interest rate': account.interest_rate,
-                'created_at': account.created_at
-            }
-        return Response(account, status=status.HTTP_200_OK)
-  
-        
-class CreateCard(APIView):
-    serializer_class = CardSerializer
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated, ]
     queryset = Card.objects.all()
     
-    @transaction.atomic
-    def post(self, request, format=None):
-        user_id = request.user.id
-        serializer = CardSerializer(data=request.data)
+    def get(self, request):
+        user_id = request.user.id 
         
-        if serializer.is_valid():
-            account_type = serializer.validated_data["account_type"]
-            acc_type_lower = account_type.lower()
-            if Card.objects.filter(user_id=user_id).exists():
-                return Response({'message': 'You already have a card'}, 
-                                status= status.HTTP_409_CONFLICT)
-            
-            else:
-                hashed_pin_value = make_password(serializer.validated_data["pin"])
-                if acc_type_lower == 'savings':
-                    acc = get_object_or_404(SavingsAccount, user_id=user_id)
-                    Card.objects.create(
-                        user_id = user_id,
-                        card_number = generate_card_number(),
-                        cvv = generate_cvv(),
-                        PIN = hashed_pin_value,
-                        current_account = acc,)
-                else:
-                    acc = get_object_or_404(CurrentAccount, user_id=user_id)
-                    Card.objects.create(
-                        user_id = user_id,
-                        card_number = generate_card_number(),
-                        cvv = generate_cvv(),
-                        PIN = hashed_pin_value,
-                        current_account = acc,)
-                card_details = get_object_or_404(Card, user_id=user_id)
-                data = {
-                    #'id': card_details.id,
-                    'user_id': card_details.user_id,
-                    'card_number': card_details.card_number,
-                    'card_type': card_details.card_type,
-                    #'PIN': card_details.PIN,
-                    #'expiration_date': card_details.expiration_date,
-                    #'cvv': card_details.cvv,
-                    'active': card_details.active,
-                    #'issued_date': card_details.issued_date.isoformat(),
-                }
-                publish_card_created.apply_async(args=[data], countdown=10)
-                return Response ({'message': 'Card created successfully.'}, status=status.HTTP_201_CREATED)
-        else:
-            return Response ({'message': 'Error creating card.'}, status=status.HTTP_400_BAD_REQUEST)
+        card = get_object_or_404(Card, user_id=user_id)
+        
+        real_card_number = decrypt_data(card.card_number)
+        real_card_cvv = decrypt_data(card.cvv)
+
+        data = {
+            'user_id': card.user_id,
+            'card_number': real_card_number,
+            'card_type': card.card_type,
+            'cvv': real_card_cvv,
+            'active': card.active,
+            'expiry_date': card.expiration_date,
+        }
+        
+        return Response(data, status=status.HTTP_200_OK)
         
         
 class VerifyCard(APIView):
@@ -350,156 +312,108 @@ class VerifyCard(APIView):
     permission_classes = [IsAuthenticated, ]
     queryset = Card.objects.all()
     
-    @transaction.atomic
     def post(self, request, format=None):
         user_id = request.user.id
         
-        # 1. Fetch Card (Correct Way)
-        # Use filter().first() instead of get_object_or_404 so we can control the error message
-        card = Card.objects.filter(user_id=user_id).first()
+        # 1. Fetch Card 
+        card = get_object_or_404(Card, user_id=user_id)
         
         if not card:
-             return Response({'message': 'Card not registered for this user.'}, status=status.HTTP_404_NOT_FOUND)
-
-        # 2. Validate Inputs
-        # Use the specific serializer that doesn't check uniqueness
+            return Response({'message': 'Card not registered for this user.'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # 2. Verify Active Status
+        if not card.active:
+            return Response({'message': 'Card is blocked.'}, status=status.HTTP_403_FORBIDDEN)
+        
+        # 3. Validate Inputs
         serializer = CardInputSerializer(data=request.data)
         
         if serializer.is_valid():
             input_pin = serializer.validated_data["PIN"]
             input_card_num = serializer.validated_data["card_number"]
             input_cvv = serializer.validated_data["cvv"]
-
-            # 3. VERIFY PIN
+   
+            # 3.1 VERIFY PIN
             if not check_password(input_pin, card.PIN):
-                # FIXED: Don't return 'data' here because it doesn't exist yet!
                 return Response({
                     'message': 'Invalid PIN', 
                     'validity': False
                 }, status=status.HTTP_403_FORBIDDEN)
             
-            # 4. Verify Active Status
-            if not card.active:
-                return Response({'message': 'Card is blocked.'}, status=status.HTTP_403_FORBIDDEN)
-            
+            # 3.2 VERIFY CARD NUMBER    
+            if input_card_num != decrypt_data(card.card_number):
+                return Response({
+                    'message': 'Invalid Card Number', 
+                    'validity': False
+                }, status=status.HTTP_403_FORBIDDEN)
+                
+            #3.3 VERIFY CARD CVV    
+            if input_cvv != decrypt_data(card.cvv):
+                return Response({
+                    'message': 'Invalid cvv', 
+                    'validity': False
+                }, status=status.HTTP_403_FORBIDDEN)
+                
+            data = {"validity": True}   #ALL CHECKS PASSED, CARD IS VALID
+            return Response({'message': 'Card Verified.', 'data': data}, status=status.HTTP_200_OK)
+        
+            """
             # 5. Verify Details Match (Card Number & CVV)
             if input_card_num == card.card_number and input_cvv == card.cvv:
-                
-                # Determine Account Type
-                if card.savings_account:
-                    # Accessing related object directly is safer/cleaner
-                    acc_type = 'savings'
-                elif card.current_account:
-                    acc_type = 'current'
-                else:
-                    return Response({'message': 'Card has no linked account.'}, status=400)
-
                 # Success Payload
-                data = {
-                    "validity": True,
-                    "account_type": acc_type
-                }
-                
-                # Publish Event
-                publish_verify_card.apply_async(args=[data], countdown=2)
-                
-                # FIXED: Use 200 OK for success, not 302 Found (which is a redirect)
+                data = {"validity": True}
+
                 return Response({'message': 'Card Verified.', 'data': data}, status=status.HTTP_200_OK)
             
             else:
                 # Details Mismatch
                 data = {"validity": False}
-                # Publish failure event if needed
-                # publish_verify_card.apply_async(args=[data], countdown=2)
                 
                 return Response({
                     'message': 'Card validation failed (CVV or Number mismatch).', 
                     'data': data
                 }, status=status.HTTP_403_FORBIDDEN)
-                
+            """ 
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        
-class VerifyCardPin(APIView):
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated, ]
-    queryset = Card.objects.all()
-    
-    def post(self, request, format=None):
-        serializer = CardSerializer(data=request.data)
-        
-        if serializer.is_valid():
-            user_id = request.user.id
-            acc = get_object_or_404(Card, user_id=user_id)
-            
-            # 1. Retrieve the stored account object
-            stored_hash = acc.PIN
 
-            # The PIN entered by the user (e.g., from a request)
-            input_pin = serializer.validated_data["PIN"]
-
-            # 2. VERIFY the PIN
-            if not check_password(input_pin, stored_hash):
-                # The PIN is NOT correct! DO NOT Proceed with the transaction.
-                data = {
-                "validity": False,
-                }  
-                publish_verify_pin.apply_async(args=[data], countdown=10)    
-                return Response ({'message': 'Invalid', 'data': data}, status=status.HTTP_403_FORBIDDEN)
-            
-            # The PIN is CORRECT! Proceed with the transaction.
-            data = {
-                "validity": True,
-            }
-            publish_verify_pin.apply_async(args=[data], countdown=10)
-            return Response({'message': 'Valid', 'data': data}, status=status.HTTP_200_OK)
-              
-        else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        
-        
-class VerifyAccountPin(APIView):   #CHECK THIS LOGIC
+  
+class VerifyAccountPin(APIView):   
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated, ]
-    serializer_class = accountserializers
+    permission_classes = [IsAuthenticated]
+    serializer_class = pinserializer
     
     def post(self, request,format=None):
         
-        serializer = accountserializers(data=request.data)
+        serializer = pinserializer(data=request.data)
         if serializer.is_valid():
             user_id = request.user.id
             
             input_pin = serializer.validated_data["pin"]
-            account_type = serializer.validated_data["account_type"]
-            
-            acc_type_lower = account_type.lower()
-            if acc_type_lower == 'savings':
-                acc = get_object_or_404(SavingsAccount, user_id=user_id)
-                
-            elif acc_type_lower == 'current':
-                acc = get_object_or_404(CurrentAccount, user_id=user_id)
-             
-            else:
-                return Response ({'message': 'The user has no open bank account'}, 
-                                 status=status.HTTP_404_NOT_FOUND)
-            
-            if not acc.active:
+        
+            account = BankAccount.objects.filter(user_id=user_id).first()
+
+            if account is None:
+                return Response({'message': 'The user has no open bank account'}, 
+                                status=status.HTTP_404_NOT_FOUND)          
+
+            if account.active is False:
                 return Response ({'message': 'Account is blocked.'}, status=status.HTTP_403_FORBIDDEN)
             
-            stored_hash = acc.PIN
+            stored_hash = account.PIN
             
             if not check_password(input_pin, stored_hash):
                 # The PIN is NOT correct! DO NOT Proceed with the transaction.
                 data = {
                 "validity": False,
                 } 
-                publish_verify_pin.apply_async(args=[data], countdown=10)    
+  
                 return Response ({'message': 'Invalid', 'data': data}, status=status.HTTP_403_FORBIDDEN)
             
             data = {
                 "validity": True,
             }
-            publish_verify_pin.apply_async(args=[data], countdown=10)
+
             return Response({'message': 'Valid', 'data': data}, status=status.HTTP_200_OK)
         
         else:
@@ -509,14 +423,14 @@ class BlockCard(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated, ] 
     queryset = Card.objects.all()  
-    serializer = CardSerializer   
+    serializer = pinserializer   
 
     @transaction.atomic
     def post(self, request,  format=None):
-        serializer = CardSerializer(data=request.data)
+        serializer = pinserializer(data=request.data)
         user_id = request.user.id
         if serializer.is_valid():
-            input_pin = serializer.validated_data['PIN']
+            input_pin = serializer.validated_data['pin']
             card = get_object_or_404(Card, user_id=user_id)
             
             if not check_password(input_pin, card.PIN):
@@ -524,7 +438,6 @@ class BlockCard(APIView):
             
             card.active = False
             card.save()
-            publish_block_card.apply_async(args=[card.active], countdown=10)
             return Response({'message': 'Card blocked successfully.'}, status=status.HTTP_200_OK)        
         
         else:
@@ -533,75 +446,80 @@ class BlockCard(APIView):
 class BlockAccount(APIView):    #REVIEW THIS LOGIC
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated,] 
-    serializer = accountserializer 
+    serializer = pinserializer
 
     @transaction.atomic
     def post(self, request, format=None):
-        serializer = accountserializer(data=request.data)
+        serializer = pinserializer(data=request.data)
+        
         
         if serializer.is_valid():
-            
             user_id = request.user.id
-            account_type = serializer.validated_data['account_type']
             input_pin = serializer.validated_data['pin']
-            
-            acc_type_lower = account_type.lower()
-            if acc_type_lower == 'savings':
-                acc = get_object_or_404(SavingsAccount, user_id=user_id)
-                
-            elif acc_type_lower == 'current':
-                acc = get_object_or_404(CurrentAccount, user_id=user_id)
-            
-            if not acc.active:
+
+            # Lock the row (select_for_update), This pauses other transactions trying to touch this specific row
+            account = BankAccount.objects.filter(user_id=user_id).select_for_update().first()
+
+            if account.active is True:
                 return Response ({'message': 'Account is already blocked.'}, status=status.HTTP_403_FORBIDDEN)
             
-            
-            if not check_password(input_pin, acc.PIN):
+            if not check_password(input_pin, account.PIN):
                 return Response ({'message': 'Invalid PIN.'}, status=status.HTTP_404_NOT_FOUND)
             
-            acc.active = False
-            acc.save()
-            publish_block_account.apply_async(args=acc.active, countdown=10)
+            account.active = False
+            account.save()
             return Response({'message': 'Account blocked successfully.'}, status=status.HTTP_200_OK)        
         
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+class StaffBlockAccount(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated] 
+    serializer = blockaccountserializer
+
+    @transaction.atomic
+    def post(self, request, format=None):
+        serializer = blockaccountserializer(data=request.data)
+        
+        
+        if serializer.is_valid():
+            account_number = serializer.validated_data['account_number']
+            input_pin = serializer.validated_data['pin']
+
+            # Lock the row (select_for_update), This pauses other transactions trying to touch this specific row
+            account = BankAccount.objects.filter(account_number=account_number).select_for_update().first()
+
+            if account.active is False:
+                return Response ({'message': 'Account is already blocked.'}, status=status.HTTP_403_FORBIDDEN)
+            
+            if not check_password(input_pin, account.PIN):
+                return Response ({'message': 'Invalid PIN.'}, status=status.HTTP_404_NOT_FOUND)
+            
+            account.active = False
+            account.save()
+            return Response({'message': 'Account blocked successfully.'}, status=status.HTTP_200_OK)        
+        
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 class GetBalance(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated,]   
 
-    def post(self, request, format=None):
-        serializer = accountserializer(data=request.data)
+    def get(self, request, format=None):
+        user_id_value = request.user.id
         
-        if serializer.is_valid():
-            user_id_value = request.user.id
-            
-            account_type = serializer.validated_data['account_type']
-            acc_type_lower = account_type.lower()
-            
-            if acc_type_lower == 'Savings':
-                acc = get_object_or_404(SavingsAccount, user_id=user_id_value)
-                
-            elif acc_type_lower == 'current':
-                acc = get_object_or_404(CurrentAccount, user_id=user_id_value)
-            
-            else:
-                return Response ({'message': 'The user has no open bank account'}, status=status.HTTP_404_NOT_FOUND)
-            
-            data = {
-                'user_id': acc.user_id,
-                'interest_rate': acc.interest_rate,
-                'balance': acc.balance,
-                'currency': acc.currency       
-                }
-            publish_get_balance.apply_async(args=[data], countdown=10)
-            return Response  ({'message': f'The account details are: {data}'}, status=status.HTTP_200_OK)
-        
-        else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST) 
-       
+        sacc = get_object_or_404(BankAccount, user_id=user_id_value)
+
+        data = {
+            'user_id': user_id_value,
+            'interest_rate': sacc.interest_rate,
+            'balance': sacc.balance,
+            'currency': sacc.currency,      
+            }
+        return Response  ({'message': f'The account details are: {data}'}, status=status.HTTP_200_OK)
         
 
 class CreateTicket(APIView):
@@ -616,16 +534,8 @@ class CreateTicket(APIView):
             user_id = request.user.id
             complaint = serializer.validated_data['complaint']
             
-            data = IT_Tickets.objects.create(user_id=user_id, complaint=complaint)
+            IT_Tickets.objects.create(user_id=user_id, complaint=complaint)
             
-            info = {
-                "id": data.id,
-                "user_id": data.user_id,
-                "complaint": data.complaint,
-                "created_at": data.created_at.isoformat()
-            }
-            
-            publish_ticket_created.apply_async(args=[info], countdown=10)
             return Response({'message': 'Ticket created successfully.'}, status=status.HTTP_201_CREATED)  
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -634,7 +544,7 @@ class CreateTicket(APIView):
 class GetAndUpdateTicket(APIView):    #CHECH THISS
     serializer_class = UpdateTicketSerializer
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated, IsIT, ]
+    permission_classes = [IsAuthenticated]
     queryset = IT_Tickets.objects.all()
     
     def get(self, request, format=None):
@@ -660,8 +570,7 @@ class GetAndUpdateTicket(APIView):    #CHECH THISS
             
             ticket.taken = True
             ticket.save()
-            
-            publish_ticket_updated.apply_async(args=[ticket], countdown=10)
+        
             return Response({'message': 'Ticket updated successfully.'}, status=status.HTTP_200_OK)  
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -669,7 +578,7 @@ class GetAndUpdateTicket(APIView):    #CHECH THISS
 class GetTickets(APIView):
     queryset = IT_Tickets.objects.all()
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated, IsIT, ]
+    permission_classes = [IsAuthenticated]
     
     def get(self, request, format=None):
         tickets = IT_Tickets.objects.filter(taken=False).all()
@@ -692,7 +601,7 @@ class DebitBankPool(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
         amount = serializer.validated_data['amount']
-        acc = BankPool.objects.first()
+        acc = BankPool.objects.select_for_update().first()
         acc.total_funds -= amount
         acc.save()
         return Response({"status": "success"}, status=status.HTTP_200_OK)
@@ -709,7 +618,7 @@ class CreditBankPool(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
         amount = serializer.validated_data['amount']
-        acc = BankPool.objects.first()
+        acc = BankPool.objects.select_for_update().first()
         acc.total_funds += amount
         acc.save()
         return Response({"status": "success"}, status=status.HTTP_200_OK)
@@ -720,85 +629,60 @@ class DebitAccount(APIView):
     permission_classes = [IsAuthenticated, ]
     
     def post(self, request):
-        # 1. Validate Data
         serializer = DebitSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        # 2. Extract Validated Data
         account_number = serializer.validated_data['account_number']
         amount = serializer.validated_data['amount'] # This is now a Decimal
-        account_type = serializer.validated_data['account_type']
 
-        try:
-            with transaction.atomic():
-                # 3. Select Model based on type
-                model = SavingsAccount if account_type == 'savings' else CurrentAccount
-                
-                # 4. Lock the row (select_for_update)
-                # This pauses other transactions trying to touch this specific row
-                try:
-                    account = model.objects.select_for_update().get(account_number=account_number)
-                except model.DoesNotExist:
-                    return Response({"error": "Account not found"}, status=status.HTTP_404_NOT_FOUND)
 
-                # 5. Check Balance
-                if account.balance < amount:
-                    return Response({
-                        "status": "failed", 
-                        "message": "Insufficient funds"
-                    }, status=status.HTTP_400_BAD_REQUEST)
+        # Lock the row (select_for_update), This pauses other transactions trying to touch this specific row
+        account = BankAccount.objects.filter(account_number=account_number).select_for_update().first()
+            
+        if account.active == False:
+            return Response({"error": "Account is blocked"}, status=status.HTTP_403_FORBIDDEN)
+ 
+        if account is None:
+            return Response({"error": "Account not found"}, status=status.HTTP_404_NOT_FOUND)
 
-                # 6. Deduct and Save
-                account.balance -= amount
-                account.save()
 
-                return Response({
-                    "status": "success", 
-                    "new_balance": str(account.balance)
-                }, status=status.HTTP_200_OK)
+        if account.balance < amount:
+            return Response({
+                "status": "failed", 
+                "message": "Insufficient funds"
+            }, status=status.HTTP_400_BAD_REQUEST)
 
-        except Exception as e:
-            # Catch unexpected DB errors
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        account.balance -= amount
+        account.save()
 
+        return Response({"status": "success", "new_balance": str(account.balance)}, status=status.HTTP_200_OK)
+    
 
 class CreditAccount(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
     
     def post(self, request):
-        # 1. Validate Data
+
         serializer = DebitSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        # 2. Extract Validated Data
+
         account_number = serializer.validated_data['account_number']
         amount = serializer.validated_data['amount'] # This is now a Decimal
-        account_type = serializer.validated_data['account_type']
 
-        try:
-            with transaction.atomic():
-                # 3. Select Model based on type
-                model = SavingsAccount if account_type == 'savings' else CurrentAccount
-                
-                # 4. Lock the row (select_for_update)
-                # This pauses other transactions trying to touch this specific row
-                try:
-                    account = model.objects.select_for_update().get(account_number=account_number)
-                except model.DoesNotExist:
-                    return Response({"error": "Account not found"}, status=status.HTTP_404_NOT_FOUND)
+        #Lock the row (select_for_update), This pauses other transactions trying to touch this specific row
+        account = BankAccount.objects.filter(account_number=account_number).select_for_update().first()
+        
+        if account.active == False:
+                return Response({"error": "Account is blocked"}, status=status.HTTP_403_FORBIDDEN)
 
-                # 5. Add and Save
-                account.balance += amount
-                account.save()
+        if account is None:
+            return Response({"error": "Account not found"}, status=status.HTTP_404_NOT_FOUND)
 
-                return Response({
-                    "status": "success", 
-                    "new_balance": str(account.balance)
-                }, status=status.HTTP_200_OK)
+        account.balance += amount
+        account.save()
 
-        except Exception as e:
-            # Catch unexpected DB errors
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({"status": "success", "new_balance": str(account.balance)}, status=status.HTTP_200_OK)

@@ -1,0 +1,19 @@
+{% extends 'dashboard_layout.html' %}
+
+{% block title %}New Support Ticket{% endblock %}
+{% block page_heading %}Support{% endblock %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 0 auto;">
+    <div class="card">
+        <h3 class="mb-4">Create New Ticket</h3>
+        
+        <form method="POST">
+            {% csrf_token %}
+            
+            {{ form.as_p }}
+            <button type="submit" class="btn-primary mt-4">Submit Ticket</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

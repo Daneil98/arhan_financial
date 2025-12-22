@@ -2,10 +2,31 @@ import requests
 from payments import settings
 import jwt # Make sure you have PyJWT installed (pip install PyJWT)
 import datetime
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+from django.conf import settings
 
 ACCOUNT_SERVICE_BASE_URL = "http://127.0.0.1:8002"   # Docker internal
 
 
+
+# 1. SETUP PERSISTENT SESSION (The Speed Fix)
+# This opens a connection pool. The first call takes 100ms, 
+# but the next calls (Debit/Credit) take ~10ms.
+def get_session():
+    session = requests.Session()
+    
+    # Optional: Add automatic retries for network blips
+    retries = Retry(total=3, backoff_factor=0.1, status_forcelist=[500, 502, 503, 504])
+    session.mount('http://', HTTPAdapter(max_retries=retries))
+    session.mount('https://', HTTPAdapter(max_retries=retries))
+    
+    return session
+
+
+# Initialize it once when the worker starts
+# (Each Celery worker process will have its own session)
+account_service_session = get_session()
 
 def generate_service_token(user_id):
     """
@@ -46,7 +67,7 @@ def verify_card(user_id, card_number, cvv, PIN):
         "Content-Type": "application/json"
     }
     try:
-        response = requests.post(url, json=payload, headers=headers, timeout=5)
+        response = account_service_session.post(url, json=payload, headers=headers, timeout=5)
         response.raise_for_status()
         return response.json()
     except Exception as e:
@@ -54,23 +75,16 @@ def verify_card(user_id, card_number, cvv, PIN):
         return {"validity": False, "error": str(e)}
 
 
-def verify_pin(user_id, account_number, pin, account_type):
+def verify_pin(user_id, account_number, pin):
     url = f"{ACCOUNT_SERVICE_BASE_URL}/account_service_api/verify_AccountPin/"
-    payload = {
-        "account_number": account_number,
-        "pin": pin,
-        "user_id": user_id,
-        "account_type": account_type,
-    }
-    # 1. Generate a real token
     token = generate_service_token(user_id)
     
-    headers = {
-        "Authorization": f"Bearer {token}",  # <--- Use the generated token
-        "Content-Type": "application/json"
-    }
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    payload = {"account_number": account_number, "pin": pin,}
+
     try:
-        response = requests.post(url, json=payload, headers=headers, timeout=5)
+        # USE THE SESSION OBJECT INSTEAD OF 'requests'
+        response = account_service_session.post(url, json=payload, headers=headers, timeout=5)
         response.raise_for_status()
         return response.json()
     except Exception as e:
@@ -90,12 +104,13 @@ def debit_bank(user_id, amount):
         "Content-Type": "application/json"
     }
     try:
-        response = requests.post(url, json=payload, headers=headers, timeout=5)
+        response = account_service_session.post(url, json=payload, headers=headers, timeout=5)
         if response.status_code == 200:
             return {"status": "success"}
         return {"status": "failed", "message": response.text}
     except Exception as e:
         return {"status": "failed", "message": str(e)}
+    
     
 def credit_bank(user_id, amount):
     url = f"{ACCOUNT_SERVICE_BASE_URL}/account_service_api/credit_bank/"
@@ -110,20 +125,19 @@ def credit_bank(user_id, amount):
         "Content-Type": "application/json"
     }
     try:
-        response = requests.post(url, json=payload, headers=headers, timeout=5)
+        response = account_service_session.post(url, json=payload, headers=headers, timeout=5)
         if response.status_code == 200:
             return {"status": "success"}
         return {"status": "failed", "message": response.text}
     except Exception as e:
         return {"status": "failed", "message": str(e)}
 
-def debit_account(user_id, account_id, amount, account_type):
+def debit_account(user_id, account_id, amount):
     url = f"{ACCOUNT_SERVICE_BASE_URL}/account_service_api/debit/"
     payload = {
         "amount": str(amount),
         "account_number": account_id,
         "user_id": user_id,
-        "account_type": account_type
     }
     # 1. Generate a real token
     token = generate_service_token(user_id)
@@ -133,14 +147,14 @@ def debit_account(user_id, account_id, amount, account_type):
         "Content-Type": "application/json"
     }
     try:
-        response = requests.post(url, json=payload, headers=headers, timeout=5)
+        response = account_service_session.post(url, json=payload, headers=headers, timeout=5)
         if response.status_code == 200:
             return {"status": "success"}
         return {"status": "failed", "message": response.text}
     except Exception as e:
         return {"status": "failed", "message": str(e)}
 
-def credit_account(user_id, account_id, amount, account_type="savings"): 
+def credit_account(user_id, account_id, amount): 
     # Logic implies payee usually receives into savings or current? 
     # You might need to add payee_account_type to your serializer later.
     url = f"{ACCOUNT_SERVICE_BASE_URL}/account_service_api/credit/"
@@ -148,7 +162,7 @@ def credit_account(user_id, account_id, amount, account_type="savings"):
         "amount": str(amount),
         "user_id": user_id,
         "account_number": account_id,
-        "account_type": account_type
+        #"account_type": account_type
     }
     # 1. Generate a real token
     token = generate_service_token(user_id)
@@ -158,7 +172,7 @@ def credit_account(user_id, account_id, amount, account_type="savings"):
         "Content-Type": "application/json"
     }
     try:
-        response = requests.post(url, json=payload, headers=headers, timeout=5)
+        response = account_service_session.post(url, json=payload, headers=headers, timeout=5)
         if response.status_code == 200:
             return {"status": "success"}
         return {"status": "failed", "message": response.text}

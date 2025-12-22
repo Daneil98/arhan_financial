@@ -27,6 +27,7 @@ def consume_customer_created(self, data):   #GOOD
     user_id_value = data.get("id")
     email_value = data.get("email")
     username = data.get("username")
+    
     user, created = User.objects.get_or_create(
         id=user_id_value,
         defaults={
@@ -47,12 +48,18 @@ def consume_staff_created(self, data):   #GOOD
     user_id_value = data.get("id")
     email_value = data.get("email")
     username = data.get("username")
+    first_name = data.get("first_name")
+    last_name = data.get("last_name")
+    role = data.get("role")
+    
     user, created = User.objects.get_or_create(
         id=user_id_value,
         defaults={
             'username': username, # or whatever unique field you use
             'email': email_value,
-            'is_active': True
+            'is_active': True,
+            'first_name': first_name,
+            'last_name': last_name,
         }
     )
     Account.objects.get_or_create(
@@ -60,6 +67,7 @@ def consume_staff_created(self, data):   #GOOD
         role = "staff"
     )
     print(f"Created service account for staff {user_id_value}")
+
 
 @shared_task(name="consume.account_service.user.logged_in", bind=True, acks_late=True)
 def consume_user_logged_in(self, data):
@@ -69,30 +77,7 @@ def consume_user_logged_in(self, data):
             print(f"customer {user_id_value} has logged in.")
     except ObjectDoesNotExist:
         print(f"No account found for user {user_id_value}")
-        
-@shared_task(name="consume.account_service.account.created", bind=True)
-def consume_ledger_account_created(self, data, acks_late=True):
-    """
-    When a new ledger account is created, link it to the user in identity DB.
-    """
-    user_id_value = data.get("user_id")
-    ledger_account_id = data.get("ledger_account_id")
-
-    try:
-        profile = Account.objects.get(user_id=user_id_value)
-        if profile.ledger_id:
-            print(f"[idempotent-skip] User {user_id_value} already linked to ledger {profile.ledger_id}")
-            return
-
-        profile.ledger_id = ledger_account_id
-        profile.save()
-
-        print(f"Linked user {user_id_value} → ledger account {ledger_account_id}")
-
-    except profile.DoesNotExist:
-        print(f"No profile found for user {user_id_value}")     
-
-     
+         
      
 # PRODUCER TASKS
 
@@ -115,7 +100,7 @@ def _publish_event(task_self, event_data, routing_key):
         print(f"Published event: {routing_key} -> {event_data}")
     except Exception as exc:
         # Retry the task if publishing fails (e.g., broker down)
-        raise task_self.retry(exc=exc, countdown=60)
+        raise task_self.retry(exc=exc)
         
 @shared_task(name="publish.account_service.account.created", bind=True)
 def publish_account_created(self, account_data):
@@ -128,29 +113,8 @@ def publish_account_created(self, account_data):
     }
     _publish_event(self, event_data, "account_service.account.created")
 
-@shared_task(name="publish.account_service.SavingsAccount.created", bind=True)
-def publish_savingsAccount_created(self, acc_data):
-    """
-    event_data = {
-        "event": "account_service.savings_account.created",
-        "user_id": str(acc_data['user_id']),
-        "account": str(acc_data['account_number']),
-        "balance": str(acc_data['balance']),
-        "interest_rate": str(acc_data['interest_rate']),
-        "currency": str(acc_data['currency']),
-        "active": str(acc_data['active']), # Assuming this field is appropriate for saving account status
-        "created_at": acc_data['created_at'],
-    }
-    """
-    event_data = {
-        "event": "account_service.savings_account.created",
-        "data": acc_data,
-    }
-    _publish_event(self, event_data, "account_service.savings_account.created")
-
-
-@shared_task(name="publish.account_service.currentAccount.created", bind=True)
-def publish_currentAccount_created(self, acc_data):
+@shared_task(name="publish.account_service.BankAccount.created", bind=True)
+def publish_BankAccount_created(self, acc_data):
     """
     event_data = {
         "event": "account_service.current_account.created",
@@ -168,37 +132,6 @@ def publish_currentAccount_created(self, acc_data):
         "data": acc_data,
     }
     _publish_event(self, event_data, "account_service.current_account.created")
-    
-
-@shared_task(name="publish.account_service.card.created", bind=True)
-def publish_card_created(self, acc_data):
-    event_data = {
-        "event": "account_service.card.created",
-        "data": acc_data,
-    }
-    _publish_event(self, event_data, "account_service.card.created")
-
-
-@shared_task(name="publish.account_service.loan.applied", bind=True)
-def publish_loan_applied(self, loan_data):
-    """
-    event_data = {
-        "event": "account_service.loan.applied",
-        "loan_id": str(loan_data['loan_id']),
-        "external_id": str(loan_data['user_id']),
-        "amount": str(loan_data['amount']),
-        "currency": str(loan_data['currency']),
-        "duration": str(loan_data['duration']),
-        "loan_status": loan_data['loan_status'],
-        "start_date": loan_data['start_date'],
-        #"end_date": loan_data.end_date.isoformat(),
-    }
-    """
-    event_data = {
-        "event": "account_service.loan.applied",
-        "data": loan_data,
-    }
-    _publish_event(self, event_data, "account_service.loan.applied")
     
 
 @shared_task(name="publish.account_service.loan.updated", bind=True)
@@ -220,82 +153,5 @@ def publish_loan_updated(self, loan_data):
         "data": loan_data,
     }
     _publish_event(self, event_data, "account_service.loan.updated")
-
-
-@shared_task(name="publish.account_service.verify.card", bind=True)
-def publish_verify_card(self, card_data):
-    event_data = {
-        "event": "account_service.verify.card",
-        "response": card_data
-    }
-    _publish_event(self, event_data, "account_service.verify.card")
     
-    
-@shared_task(name='publish.account_service.get.balance', bind=True)
-def publish_get_balance(self, balance):
-    event_data = {
-        "event": "account_service.get.balance",
-        "response": balance
-    }
-    _publish_event(self, event_data, "account_service.get.balance")
-    
-    
-@shared_task(name="publish.account_service.verify.pin", bind=True)
-def publish_verify_pin(self, data):
-    """
-    Publishes 'account_service.verify.pin' event asynchronously.
-    """
-    event_data = {
-        "event": "account_service.verify.pin",
-        "response": data
-    }
-    
-    _publish_event(self, event_data, "account_service.verify.pin")
-
-    
-@shared_task(name="publish.account_service.block.card", bind=True)
-def publish_block_card(self, data):
-    """
-    Publishes 'account_service.block.card' event asynchronously.
-    """
-    event_data = {
-        "event": "account_service.block.card",
-        "response": data
-    }
-    
-    _publish_event(self, event_data, "account_service.block.card")    
-
-@shared_task(name="publish.account_service.block.account", bind=True)
-def publish_block_account(self, data):
-    """
-    Publishes 'account_service.block.account' event asynchronously.
-    """
-    event_data = {
-        "event": "account_service.block.account",
-        "response": data
-    }
-    
-    _publish_event(self, event_data, "account_service.block.account")    
-    
-    
-@shared_task(name="publish.account_service.ticket.created", bind=True)
-def publish_ticket_created(self, ticket_data):
-    
-    #Publishes 'Identity_service.ticket.created' event to RabbitMQ.
-    data = {
-        "event": "account_service.ticket.created",
-        "ticket_data": ticket_data
-    }
-
-    _publish_event(self, data, "account_service.ticket.created")
-    
-@shared_task(name="publish.account_service.ticket.updated", bind=True)
-def publish_ticket_updated(self, ticket_data):
-    
-    #Publishes 'Identity_service.ticket.updated' event to RabbitMQ.
-    data = {
-        "event": "account_service.ticket.updated",
-        "ticket_data": ticket_data
-    }
-    _publish_event(self, data, "account_service.ticket.updated")
-
+   

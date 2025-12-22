@@ -32,7 +32,6 @@ app.conf.task_queues = [
     
 
     # INBOUND EVENTS
-    Queue("ledger.payment.completed", ledger_exchange, routing_key="payment.completed"),  
 
     Queue("account_service.loan.updated",
           account_exchange,
@@ -121,14 +120,6 @@ app.conf.task_routes = {
 
 
 # B. The "Catch-All" Event Queue
-# Listens to "ledger.#" -> Everything starting with Identity_service.
-event_router_queue1 = Queue(
-    name='payment.incoming.ledger_events', 
-    exchange=ledger_exchange, 
-    routing_key='ledger.#', # <--- WILDCARD IS KEY HERE
-    durable=True
-)
-
 # Listens to "Identity_service.#" -> Everything starting with payment.
 event_router_queue2 = Queue(
     name='payment.incoming.Identity_service_events', 
@@ -148,7 +139,7 @@ event_router_queue3 = Queue(
 class EventRouter(bootsteps.ConsumerStep):
     def get_consumers(self, channel):
         return [Consumer(channel,
-                         queues=[event_router_queue1, event_router_queue2,
+                         queues=[event_router_queue2,
                                  event_router_queue3],
                          callbacks=[self.route_message],
                          accept=['json'])]
@@ -187,10 +178,7 @@ class EventRouter(bootsteps.ConsumerStep):
             event_map = {
                 'Identity_service.customer.created': 'consume.payment.customer.created',
                 'Identity_service.user.logged_in':   'consume.payment.user.logged_in',
-                'account_service.SavingsAccount.created': 'consume.payment.SavingsAccount.created',
-                'account_service.currentAccount.created': 'consume.payment.currentAccount.created',
-                'account_service.verify.pin': 'consume.payment.verify.pin',
-                'account_service.verify.card': 'consume.payment.verify.card',
+                'account_service.BankAccount.created': 'consume.payment.BankAccount.created',
                 'account_service.loan.updated': 'consume.payment.loan.updated',
             }
 

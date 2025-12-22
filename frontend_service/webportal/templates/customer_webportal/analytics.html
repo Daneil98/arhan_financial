@@ -1,0 +1,183 @@
+{% extends 'dashboard_layout.html' %}
+{% load humanize %}
+
+{% block title %}Analytics - Arhan Financial{% endblock %}
+{% block page_heading %}Financial Insights{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Stats Cards */
+    .stat-card {
+        padding: 20px;
+        border-radius: 16px;
+        background: white;
+        border: 1px solid var(--border-light);
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    .stat-icon {
+        width: 50px; height: 50px;
+        border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.5rem;
+    }
+    
+    /* Chart Containers */
+    .chart-box {
+        background: white;
+        padding: 25px;
+        border-radius: 20px;
+        box-shadow: var(--shadow-card);
+        height: 100%;
+    }
+    
+    /* Top Recipient List */
+    .recipient-item {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--border-light);
+    }
+    .recipient-item:last-child { border-bottom: none; }
+    
+    .avatar-circle {
+        width: 40px; height: 40px; background: #F3F4F6; color: #4B5563;
+        border-radius: 50%; display: flex; align-items: center; justify-content: center;
+        font-weight: 600; margin-right: 12px;
+    }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+
+    <div class="col-span-1">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: #FFF5F5; color: #E53E3E;">
+                <i class="fas fa-arrow-trend-down"></i>
+            </div>
+            <div>
+                <p class="text-gray" style="font-size: 0.85rem;">Total Spent</p>
+                <h3 style="font-size: 1.2rem; font-weight: 700;">₦ {{ total_expense|intcomma }}</h3>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-span-1">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: #F0FDF4; color: var(--primary-green);">
+                <i class="fas fa-arrow-trend-up"></i>
+            </div>
+            <div>
+                <p class="text-gray" style="font-size: 0.85rem;">Total Income</p>
+                <h3 style="font-size: 1.2rem; font-weight: 700;">₦ {{ total_income|intcomma }}</h3>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-span-2">
+        <div class="stat-card" style="justify-content: space-between;">
+            <div style="display: flex; gap: 15px; align-items: center;">
+                <div class="stat-icon" style="background: #Eef2ff; color: #4F46E5;">
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <div>
+                    <p class="text-gray" style="font-size: 0.85rem;">Net Cash Flow</p>
+                    <h3 style="font-size: 1.2rem; font-weight: 700;">
+                        {% if net_flow >= 0 %}+{% endif %} ₦ {{ net_flow|intcomma }}
+                    </h3>
+                </div>
+            </div>
+            <span style="font-size: 0.8rem; padding: 5px 10px; border-radius: 10px; background: {% if net_flow >= 0 %}#F0FDF4{% else %}#FFF5F5{% endif %}; color: {% if net_flow >= 0 %}green{% else %}red{% endif %};">
+                Last 30 Days
+            </span>
+        </div>
+    </div>
+
+
+    <div class="col-span-3">
+        <div class="chart-box">
+            <div class="flex justify-between items-center mb-4">
+                <h3 style="font-size: 1.1rem; font-weight: 600;">Spending Trends</h3>
+                <select style="border: none; background: #F3F4F6; padding: 5px 10px; border-radius: 8px; font-size: 0.8rem;">
+                    <option>Last 7 Days</option>
+                    <option>Last Month</option>
+                </select>
+            </div>
+            <div style="height: 250px;">
+                <canvas id="trendChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-span-1">
+        <div class="chart-box">
+            <h3 class="mb-4" style="font-size: 1rem; font-weight: 600;">Top Recipients</h3>
+            
+            {% for recipient, amount in top_recipients %}
+            <div class="recipient-item">
+                <div style="display: flex; align-items: center;">
+                    <div class="avatar-circle">{{ recipient|slice:":1" }}</div>
+                    <div>
+                        <p style="font-size: 0.9rem; font-weight: 600;">{{ recipient|truncatechars:10 }}</p>
+                        <p style="font-size: 0.75rem; color: gray;">Transfer</p>
+                    </div>
+                </div>
+                <span style="font-weight: 600; font-size: 0.9rem;">₦{{ amount|intcomma }}</span>
+            </div>
+            {% empty %}
+            <p class="text-gray text-center mt-4">No data yet.</p>
+            {% endfor %}
+            
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const ctx = document.getElementById('trendChart').getContext('2d');
+    
+    // Gradient Fill for the Chart
+    let gradient = ctx.createLinearGradient(0, 0, 0, 400);
+    gradient.addColorStop(0, 'rgba(16, 185, 129, 0.2)'); // Greenish
+    gradient.addColorStop(1, 'rgba(16, 185, 129, 0)');
+
+    const trendChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            // Use Django Template Tags to inject Python List
+            labels: {{ chart_labels|safe }}, 
+            datasets: [{
+                label: 'Daily Spending',
+                data: {{ chart_data|safe }},
+                borderColor: '#10B981', // Primary Green
+                backgroundColor: gradient,
+                borderWidth: 2,
+                pointBackgroundColor: '#ffffff',
+                pointBorderColor: '#10B981',
+                pointRadius: 4,
+                fill: true,
+                tension: 0.4 // Smooth curves
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { borderDash: [5, 5], color: '#f3f4f6' }
+                },
+                x: {
+                    grid: { display: false }
+                }
+            }
+        }
+    });
+</script>
+
+{% endblock %}

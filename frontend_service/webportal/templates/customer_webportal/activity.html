@@ -1,0 +1,167 @@
+{% extends 'dashboard_layout.html' %}
+
+{% block title %}Activity Hub - Arhan Financial{% endblock %}
+{% block page_heading %}Activity Hub{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Activity Card Styling */
+    .activity-card {
+        background: var(--bg-white);
+        border: 1px solid var(--border-light);
+        border-radius: 16px;
+        padding: 25px;
+        text-align: center;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        min-height: 160px;
+    }
+    
+    .activity-card:hover {
+        transform: translateY(-5px);
+        border-color: var(--primary-green);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+    }
+
+    /* Icon Bubbles */
+    .icon-bubble {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin-bottom: 15px;
+        transition: all 0.3s;
+    }
+
+    /* Color Themes for Categories */
+    .theme-transfer .icon-bubble { background: #E7F8F0; color: var(--primary-green); }
+    .activity-card:hover .theme-transfer .icon-bubble { background: var(--primary-green); color: white; }
+
+    .theme-card .icon-bubble { background: #FFF6E6; color: #FFB37B; }
+    .activity-card:hover .theme-card .icon-bubble { background: #FFB37B; color: white; }
+
+    .theme-loan .icon-bubble { background: #Eef2ff; color: #4F46E5; }
+    .activity-card:hover .theme-loan .icon-bubble { background: #4F46E5; color: white; }
+
+    .theme-danger .icon-bubble { background: #FEE2E2; color: #EF4444; }
+    .activity-card:hover .theme-danger .icon-bubble { background: #EF4444; color: white; }
+
+    .card-title { font-weight: 600; font-size: 1rem; color: var(--primary-dark); margin-bottom: 5px; }
+    .card-desc { font-size: 0.85rem; color: var(--secondary-text); line-height: 1.4; }
+    
+    .section-title {
+        grid-column: 1 / -1; /* Spans full width */
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-top: 30px;
+        margin-bottom: 15px;
+        color: var(--primary-dark);
+        border-bottom: 1px solid var(--border-light);
+        padding-bottom: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+
+    <div class="section-title" style="margin-top: 0;">Money Moves</div>
+
+    <div class="col-span-1">
+        <div class="activity-card theme-transfer" onclick="location.href='{% url 'internal_transfer' %}'">
+            <div class="icon-bubble"><i class="fas fa-money-bill-transfer"></i></div>
+            <h3 class="card-title">Internal Transfer</h3>
+            <p class="card-desc">Send money to other Arhan accounts instantly.</p>
+        </div>
+    </div>
+
+    <div class="col-span-1">
+        <div class="activity-card theme-transfer" onclick="location.href='{% url 'card_payment' %}'">
+            <div class="icon-bubble"><i class="fas fa-credit-card"></i></div>
+            <h3 class="card-title">Card Transfer</h3>
+            <p class="card-desc">Pay directly to external bank cards.</p>
+        </div>
+    </div>
+
+    <div class="col-span-1">
+        <div class="activity-card theme-transfer" onclick="location.href='{% url 'transactions' %}'">
+            <div class="icon-bubble"><i class="fas fa-list-ul"></i></div>
+            <h3 class="card-title">Transaction History</h3>
+            <p class="card-desc">View and download your past statements.</p>
+        </div>
+    </div>
+    
+    <div class="col-span-1"></div>
+
+
+    <div class="section-title">Cards & Accounts</div>
+    <div class="col-span-1">
+        <div class="activity-card theme-card" onclick="location.href='{% url 'create_bank_account' %}'">
+            <div class="icon-bubble"><i class="fas fa-plus-circle"></i></div>
+            <h3 class="card-title">Create New Account</h3>
+            <p class="card-desc">Create a new bank account with us.</p>
+        </div>
+    </div>
+
+
+    <div class="col-span-1">
+        <div class="activity-card theme-card" onclick="location.href='{% url 'card_request' %}'">
+            <div class="icon-bubble"><i class="fas fa-plus-circle"></i></div>
+            <h3 class="card-title">Create New Card</h3>
+            <p class="card-desc">Request a physical or virtual debit card.</p>
+        </div>
+    </div>
+
+    <div class="col-span-1">
+        <div class="activity-card theme-loan" onclick="location.href='{% url 'view_cards' %}'">
+            <div class="icon-bubble"><i class="fas fa-eye"></i></div>
+            <h3 class="card-title">View Cards</h3>
+            <p class="card-desc">View all your registered cards here.</p>
+        </div>
+    </div>
+
+    <div class="col-span-1">
+        <div class="activity-card theme-danger" onclick="location.href='{% url 'block_card' %}'">
+            <div class="icon-bubble"><i class="fas fa-ban"></i></div>
+            <h3 class="card-title">Block Card</h3>
+            <p class="card-desc">Lost your card? Freeze it immediately here.</p>
+        </div>
+    </div>
+    
+    <div class="col-span-1">
+        <div class="activity-card theme-danger" onclick="location.href='{% url 'block_account' %}'">
+            <div class="icon-bubble"><i class="fas fa-user-lock"></i></div>
+            <h3 class="card-title">Block Account</h3>
+            <p class="card-desc">Temporarily disable all account activities.</p>
+        </div>
+    </div>
+
+
+    <div class="section-title">Loans & Services</div>
+
+    <div class="col-span-1">
+        <div class="activity-card theme-loan" onclick="location.href='{% url 'loan_detail' %}'">
+            <div class="icon-bubble"><i class="fas fa-hand-holding-dollar"></i></div>
+            <h3 class="card-title">My Loans</h3>
+            <p class="card-desc">View status, repayment plans, and details.</p>
+        </div>
+    </div>
+
+    <div class="col-span-1">
+        <div class="activity-card theme-loan" onclick="location.href='{% url 'loan_apply' %}'">
+            <div class="icon-bubble"><i class="fas fa-file-signature"></i></div>
+            <h3 class="card-title">Apply for Loan</h3>
+            <p class="card-desc">Get funds quickly with low interest rates.</p>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

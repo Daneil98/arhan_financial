@@ -1,0 +1,140 @@
+{% extends 'dashboard_layout.html' %}
+
+{% block title %}Request New Card - Arhan Financial{% endblock %}
+{% block page_heading %}Card Management{% endblock %}
+
+{% block extra_css %}
+<style>
+    .card-creation-container {
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    /* The "Shiny New Card" Visual */
+    .new-card-preview {
+        background: linear-gradient(135deg, #10B981 0%, #047857 100%);
+        border-radius: 20px;
+        padding: 30px;
+        color: white;
+        box-shadow: 0 20px 40px -10px rgba(16, 185, 129, 0.4);
+        margin-bottom: 30px;
+        position: relative;
+        overflow: hidden;
+        height: 220px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    /* Decorative circles on the card */
+    .card-deco-circle {
+        position: absolute;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    /* Form Styling */
+    .form-group { margin-bottom: 20px; text-align: left; }
+    .form-group label {
+        display: block;
+        font-weight: 500;
+        margin-bottom: 8px;
+        color: var(--secondary-text);
+        font-size: 0.9rem;
+    }
+    .form-group input, .form-group select {
+        width: 100%;
+        padding: 12px 15px;
+        border: 1px solid var(--border-light);
+        border-radius: 12px;
+        font-size: 1rem;
+        background: white;
+        transition: all 0.2s;
+    }
+    .form-group input:focus, .form-group select:focus {
+        border-color: var(--primary-green);
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    }
+
+    .btn-create {
+        width: 100%;
+        background: var(--primary-dark);
+        color: white;
+        padding: 14px;
+        border-radius: 12px;
+        font-weight: 600;
+        border: none;
+        cursor: pointer;
+        transition: background 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+    }
+    .btn-create:hover {
+        background: black;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+    <div class="col-span-4">
+        
+        <div class="card card-creation-container">
+            <h2 style="text-align: center; font-size: 1.5rem; font-weight: 700; margin-bottom: 5px;">Order a New Card</h2>
+            <p style="text-align: center; color: var(--secondary-text); margin-bottom: 25px;">Get a physical or virtual debit card instantly.</p>
+
+            <div class="new-card-preview">
+                <div class="card-deco-circle" style="width: 200px; height: 200px; top: -50px; right: -50px;"></div>
+                <div class="card-deco-circle" style="width: 100px; height: 100px; bottom: -20px; left: -20px;"></div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; z-index: 2;">
+                    <span style="font-weight: 600; letter-spacing: 1px;">Arhan Debit</span>
+                    <i class="fas fa-wifi" style="transform: rotate(90deg);"></i>
+                </div>
+
+                <div style="text-align: center; opacity: 0.8; letter-spacing: 3px; font-size: 1.2rem; z-index: 2;">
+                    •••• •••• •••• ••••
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: flex-end; z-index: 2;">
+                    <div>
+                        <p style="font-size: 0.7rem; opacity: 0.8;">CARD HOLDER</p>
+                        <p style="font-size: 1rem; font-weight: 600; text-transform: uppercase;">{{ request.session.username|default:"YOUR NAME" }}</p>
+                    </div>
+                    <i class="fab fa-cc-mastercard" style="font-size: 2rem;"></i>
+                </div>
+            </div>
+
+            <form method="post">
+                {% csrf_token %}
+                
+                {% for field in form %}
+                    <div class="form-group">
+                        <label>{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.help_text %}
+                            <small style="color: gray; display: block; margin-top: 5px;">{{ field.help_text }}</small>
+                        {% endif %}
+                        {% if field.errors %}
+                            <small style="color: #DC2626;">{{ field.errors.0 }}</small>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+
+                <button type="submit" class="btn-create">
+                    <i class="fas fa-plus-circle"></i> Create Card
+                </button>
+            </form>
+
+            <div style="text-align: center; margin-top: 20px;">
+                <a href="{% url 'activity' %}" style="color: var(--secondary-text); font-size: 0.9rem;">Cancel</a>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+{% endblock %}

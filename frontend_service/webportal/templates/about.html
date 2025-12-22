@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %} About {% endblock %}
+
+
+{% block content %}  
+
+    <h1>About Us</h1>
+    <p> 
+        Arhan Financial is a comprehensive financial services platform dedicated to providing top-notch solutions for 
+        individuals and businesses alike. Our mission is to empower our clients with the tools and knowledge they need to achieve 
+        their financial goals.
+    </p>
+    <br>
+    <br>
+    <br>
+       
+    <form method="post">
+        {% csrf_token %}
+        {{ form }}
+        <input type ="submit" value="Submit">
+    </form>
+{% endblock %}
+

@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+
+{% block title %} Smart Banking for a Digital World - Arhan Financial {% endblock %}
+
+{# Define landing-specific styles here to keep base.css clean #}
+{% block extra_css %}
+<style>
+    /* --- HERO SECTION LAYOUT --- */
+    .hero-container {
+        min-height: 90vh; /* Takes up most of the screen */
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 40px 5vw; /* Responsive padding */
+        background: radial-gradient(circle at top right, rgba(16, 185, 129, 0.1) 0%, rgba(249, 250, 251, 0) 60%);
+        overflow: hidden;
+    }
+
+    .hero-content {
+        flex: 1;
+        max-width: 600px;
+        z-index: 2;
+    }
+
+    .hero-visual {
+        flex: 1;
+        position: relative;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        /* Hide on smaller tablets/phones to keep things clean */
+        @media (max-width: 960px) { display: none; }
+    }
+
+    /* --- TYPOGRAPHY --- */
+    .hero-badge {
+        display: inline-block;
+        background: #E7F8F0;
+        color: var(--primary-green);
+        padding: 8px 16px;
+        border-radius: 30px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        margin-bottom: 25px;
+    }
+
+    .hero-title {
+        font-size: 3.5rem;
+        font-weight: 800;
+        color: var(--primary-dark);
+        line-height: 1.1;
+        margin-bottom: 20px;
+    }
+
+    .hero-title .highlight {
+        color: var(--primary-green);
+        position: relative;
+    }
+    /* Underline effect for the highlight */
+    .hero-title .highlight::after {
+        content: '';
+        position: absolute;
+        bottom: 5px;
+        left: 0;
+        width: 100%;
+        height: 8px;
+        background: rgba(16, 185, 129, 0.2);
+        z-index: -1;
+        border-radius: 4px;
+    }
+
+    .hero-subtitle {
+        font-size: 1.15rem;
+        color: var(--secondary-text);
+        margin-bottom: 40px;
+        line-height: 1.6;
+        max-width: 480px;
+    }
+
+    /* --- CTAs --- */
+    .cta-group {
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+
+    .btn-hero-primary {
+        background-color: var(--primary-green);
+        color: white;
+        padding: 15px 35px;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 1.05rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 10px 20px -10px rgba(16, 185, 129, 0.5);
+    }
+    .btn-hero-primary:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 15px 30px -10px rgba(16, 185, 129, 0.7);
+        color: white;
+    }
+
+    .btn-hero-secondary {
+        background-color: transparent;
+        color: var(--primary-dark);
+        border: 2px solid var(--border-light);
+        padding: 15px 35px;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 1.05rem;
+        transition: all 0.3s ease;
+    }
+    .btn-hero-secondary:hover {
+        border-color: var(--primary-dark);
+        background: rgba(0,0,0,0.02);
+        color: var(--primary-dark);
+    }
+
+    /* --- CSS-ONLY VISUALS (Floating Elements) --- */
+    /* Subtle floating animation */
+    @keyframes float {
+        0% { transform: translateY(0px); }
+        50% { transform: translateY(-15px); }
+        100% { transform: translateY(0px); }
+    }
+
+    .visual-card-base {
+        width: 380px;
+        height: 480px;
+        background: white;
+        border-radius: 24px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+        padding: 30px;
+        position: relative;
+        animation: float 6s ease-in-out infinite;
+        border: 1px solid rgba(255, 255, 255, 0.5);
+    }
+
+    /* Fake UI Elements inside the card */
+    .fake-header { display: flex; justify-content: space-between; margin-bottom: 30px; }
+    .fake-balance-title { height: 15px; width: 100px; background: #F3F4F6; border-radius: 8px; }
+    .fake-balance-amount { height: 35px; width: 180px; background: var(--primary-dark); border-radius: 8px; margin-top: 10px; }
+    .fake-chart { height: 150px; background: linear-gradient(180deg, rgba(16, 185, 129, 0.1) 0%, rgba(255,255,255,0) 100%); border-radius: 16px; margin-top: 30px; border-top: 3px solid var(--primary-green); position: relative; }
+    
+    /* Floating Credit Card */
+    .floating-cc {
+        position: absolute;
+        bottom: -40px;
+        right: -60px;
+        width: 260px;
+        height: 160px;
+        background: linear-gradient(135deg, #10B981 0%, #064E3B 100%);
+        border-radius: 20px;
+        box-shadow: 0 20px 40px -10px rgba(6, 78, 59, 0.5);
+        padding: 25px;
+        color: white;
+        animation: float 7s ease-in-out infinite reverse; /* Floats opposite direction */
+        z-index: 3;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .hero-container { flex-direction: column; padding-top: 60px; text-align: center; }
+        .hero-content { margin: 0 auto; }
+        .hero-title { font-size: 2.5rem; }
+        .hero-subtitle { margin: 0 auto 40px auto; }
+        .cta-group { justify-content: center; }
+    }
+</style>
+{% endblock %}
+
+{% block layout %}
+    <div class="hero-container">
+        
+        <div class="hero-content">
+            <div class="hero-badge">
+                <i class="fas fa-rocket"></i> Banking Evolved
+            </div>
+            
+            <h1 class="hero-title">
+                Smart Banking for a <span class="highlight">Digital World.</span>
+            </h1>
+            
+            <p class="hero-subtitle">
+                Experience the future of finance with Arhan. Manage accounts, track spending, and achieve your financial goals—all in one secure place.
+            </p>
+
+            <div class="cta-group">
+                <a href="{% url 'customer_register' %}" class="btn-hero-primary">
+                    Get Started Now
+                </a>
+                <a href="{% url 'login' %}" class="btn-hero-secondary">
+                    Sign In <i class="fas fa-arrow-right" style="margin-left: 8px; font-size: 0.9rem;"></i>
+                </a>
+                </div>
+
+            <div style="margin-top: 40px; display: flex; align-items: center; gap: 15px; opacity: 0.7;">
+                <div style="display: flex;">
+                    <div style="width:30px; height:30px; background:#ddd; border-radius:50%; border:2px solid white;"></div>
+                    <div style="width:30px; height:30px; background:#ccc; border-radius:50%; border:2px solid white; margin-left:-10px;"></div>
+                    <div style="width:30px; height:30px; background:#bbb; border-radius:50%; border:2px solid white; margin-left:-10px;"></div>
+                </div>
+                <p style="font-size: 0.9rem; font-weight: 500; color: var(--secondary-text);">Trusted by 50,000+ users</p>
+            </div>
+        </div>
+
+    <div class="hero-visual">
+        <div class="visual-card-base" style="overflow: hidden;"> <div class="fake-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                <div style="width: 45px; height: 45px; background: #E7F8F0; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-user" style="color: var(--primary-green); font-size: 1.2rem;"></i>
+                </div>
+                <div style="width: 40px; height: 40px; border: 1px solid #eee; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-bars" style="color: #ccc;"></i>
+                </div>
+            </div>
+
+            <div class="fake-balance-title" style="margin-bottom: 5px;">
+                <span style="font-size: 0.8rem; color: #888; font-weight: 500;">Total Balance</span>
+            </div>
+            <div class="fake-balance-amount" style="width: auto; background: transparent; color: var(--primary-dark); font-size: 1.8rem; font-weight: 800; margin-top: 0;">
+                ₦100,500.00
+            </div>
+
+            <div class="fake-chart">
+                <div style="position: absolute; top: -6px; right: 20%; width: 12px; height: 12px; background: var(--primary-green); border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.1);"></div>
+                <div style="position: absolute; top: -35px; right: 12%; background: var(--primary-dark); color: white; padding: 4px 10px; border-radius: 8px; font-size: 0.7rem; font-weight: 600;">
+                    +₦10,200
+                </div>
+            </div>
+
+            <div style="margin-top: 25px;">
+                <p style="font-size: 0.85rem; font-weight: 600; color: #444; margin-bottom: 15px;">Recent Activity</p>
+                
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 35px; height: 35px; background: #FFF5F5; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #E53E3E; font-size: 0.8rem;">
+                            <i class="fas fa-arrow-up"></i>
+                        </div>
+                        <div>
+                            <div style="width: 80px; height: 8px; background: #eee; border-radius: 4px; margin-bottom: 4px;"></div>
+                            <div style="width: 50px; height: 6px; background: #f9f9f9; border-radius: 4px;"></div>
+                        </div>
+                    </div>
+                    <div style="font-size: 0.9rem; font-weight: 700; color: #333;">-₦10,000</div>
+                </div>
+
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 35px; height: 35px; background: #F0FDF4; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--primary-green); font-size: 0.8rem;">
+                            <i class="fas fa-arrow-down"></i>
+                        </div>
+                        <div>
+                            <div style="width: 90px; height: 8px; background: #eee; border-radius: 4px; margin-bottom: 4px;"></div>
+                            <div style="width: 60px; height: 6px; background: #f9f9f9; border-radius: 4px;"></div>
+                        </div>
+                    </div>
+                    <div style="font-size: 0.9rem; font-weight: 700; color: var(--primary-green);">+₦20,450</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="floating-cc">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+                <i class="fas fa-wifi" style="transform: rotate(90deg); opacity: 0.8;"></i>
+                <span style="font-weight: 700; letter-spacing: 1px;">Arhan</span>
+            </div>
+            <div style="font-size: 1.2rem; letter-spacing: 2px; margin-bottom: 15px; opacity: 0.9;">
+                •••• •••• •••• 4582
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                <span style="font-size: 0.8rem; opacity: 0.8;">DAVID U.</span>
+                <i class="fab fa-cc-mastercard" style="font-size: 1.8rem; opacity: 0.9;"></i>
+            </div>
+        </div>
+    </div>
+    </div>
+{% endblock %}

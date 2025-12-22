@@ -1,0 +1,280 @@
+{% extends 'dashboard_layout.html' %}
+
+{% block title %}My Cards - Arhan Financial{% endblock %}
+{% block page_heading %}My Cards{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* --- HERO SECTION CONTAINER --- */
+    .hero-card-container {
+        display: flex;
+        justify-content: flex-start; /* Aligns card to the left of its column */
+        align-items: flex-start; /* Aligns card to the TOP */
+        /* Removed huge padding to fix alignment issue */
+        padding: 0; 
+        background: transparent; /* Removed background to look cleaner side-by-side */
+    }
+
+    /* --- THE PREMIUM CARD (Balanced Size) --- */
+    .premium-card {
+        width: 100%;
+        max-width: 400px; /* Reduced from 600px to 400px (Sweet Spot) */
+        aspect-ratio: 1.586/1;
+        background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
+        border-radius: 20px;
+        position: relative;
+        overflow: hidden;
+        color: white;
+        box-shadow: 0 20px 40px -10px rgba(15, 23, 42, 0.5);
+        padding: 30px; /* Standard padding */
+        transition: transform 0.4s ease;
+        transform-style: preserve-3d;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .premium-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 30px 60px -15px rgba(16, 185, 129, 0.3);
+    }
+
+    /* Decorative Elements */
+    .card-gloss {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: linear-gradient(125deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 45%);
+        pointer-events: none;
+        z-index: 1;
+    }
+    .card-circle-bg {
+        position: absolute;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, rgba(16, 185, 129, 0.2) 0%, rgba(0,0,0,0) 70%);
+        top: -80px;
+        right: -80px;
+        border-radius: 50%;
+        z-index: 0;
+    }
+
+    /* Typography & Icons (Scaled for 400px) */
+    .card-top { display: flex; justify-content: space-between; align-items: center; z-index: 2; margin-bottom: 10px; }
+    .card-chip { font-size: 2.8rem; color: #fbbf24; text-shadow: 0 2px 4px rgba(0,0,0,0.3); } 
+    .card-nfc { font-size: 2rem; opacity: 0.7; transform: rotate(90deg); }
+    
+    .card-number {
+        font-family: 'Courier New', monospace;
+        font-size: 1.7rem; /* Clean, readable size */
+        letter-spacing: 3px;
+        text-shadow: 0 2px 2px rgba(0,0,0,0.5);
+        font-weight: 700;
+        z-index: 2;
+        margin: 15px 0;
+        white-space: nowrap;
+    }
+
+    .card-details { display: flex; justify-content: space-between; align-items: flex-end; z-index: 2; }
+    .detail-label { font-size: 0.7rem; opacity: 0.7; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+    .detail-value { font-size: 1rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+
+    /* --- TOGGLE BUTTON & MASKING --- */
+    .reveal-btn {
+        position: absolute;
+        top: 25px;
+        right: 25px;
+        background: rgba(255, 255, 255, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s;
+        z-index: 10;
+        backdrop-filter: blur(5px);
+        font-size: 1rem;
+    }
+    .reveal-btn:hover { background: rgba(255, 255, 255, 0.3); transform: scale(1.1); }
+
+    .masked-dots {
+        font-size: 2.2rem;
+        letter-spacing: 4px;
+        line-height: 0.6;
+        display: inline-block;
+        vertical-align: middle;
+        margin-top: -10px;
+    }
+
+    /* --- RESPONSIVE ADJUSTMENTS --- */
+    @media (max-width: 992px) {
+        .hero-card-container { justify-content: center; margin-bottom: 30px; } /* Stack on mobile */
+    }
+
+    /* --- TABLE SECTION --- */
+    .table-card { background: white; border-radius: 16px; box-shadow: var(--shadow-card); overflow: hidden; height: 100%; }
+    .custom-table { width: 100%; border-collapse: collapse; }
+    .custom-table th { background: #F9FAFB; color: var(--secondary-text); font-weight: 600; text-transform: uppercase; font-size: 0.75rem; padding: 15px 20px; text-align: left; }
+    .custom-table td { padding: 20px; border-bottom: 1px solid var(--border-light); color: var(--primary-dark); font-size: 0.95rem; }
+    
+    .status-badge { padding: 6px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+    .status-active { background: #ECFDF5; color: #059669; }
+    .status-blocked { background: #FEF2F2; color: #DC2626; }
+
+    /* Action Buttons */
+    .action-btn { display: flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 10px; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; text-decoration: none; }
+    .btn-solid { background: var(--primary-green); color: white; border: none; }
+    .btn-outline { background: white; border: 1px solid #E5E7EB; color: var(--primary-dark); }
+</style>
+{% endblock %}
+
+{% block header_actions %}
+<div style="display: flex; gap: 12px;">
+    <a href="{% url 'card_request' %}" class="action-btn btn-outline">
+        <i class="fas fa-plus"></i> Request New
+    </a>
+    <a href="{% url 'block_card' %}" class="action-btn btn-solid">
+        <i class="fas fa-lock"></i> Freeze Card
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+    
+    <div class="col-span-2 hero-card-container">
+        {% if card %}
+        <div class="premium-card">
+            <div class="card-gloss"></div>
+            <div class="card-circle-bg"></div>
+
+            <button class="reveal-btn" onclick="toggleCardDetails(this)" title="Show/Hide Details">
+                <i class="fas fa-eye"></i>
+            </button>
+
+            <div class="card-top">
+                <i class="fab fa-cc-visa card-chip"></i>
+                <i class="fas fa-wifi card-nfc"></i>
+            </div>
+
+            <div class="card-number" id="display-number" data-value="{{ card.card_number }}">
+                <span class="masked-dots">•••• •••• •••• ••••</span>
+            </div>
+
+            <div class="card-details">
+                <div>
+                    <div class="detail-label">Card Holder</div>
+                    <div class="detail-value">{{ request.session.username|default:"Customer" }}</div>
+                </div>
+                
+                <div style="display: flex; gap: 30px;">
+                    <div style="text-align: right;">
+                        <div class="detail-label">Expires</div>
+                        <div class="detail-value" id="display-expiry" data-value="{{ card.expiry_date|default:'MM/YY' }}">
+                            <span class="masked-dots" style="font-size: 1.5rem;">••/••</span>
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: right;">
+                        <div class="detail-label">CVV</div>
+                        <div class="detail-value" id="display-cvv" data-value="{{ card.cvv|default:'123' }}">
+                            <span class="masked-dots" style="font-size: 1.5rem;">•••</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="position: absolute; top: 25px; left: 45px; opacity: 0.8;">
+                <span style="font-weight: 600; letter-spacing: 1.5px; font-size: 1.1rem;">Arhan Financial</span>
+            </div>
+        </div>
+        {% else %}
+        <div style="text-align: center; color: gray; width: 100%; padding: 40px; background: white; border-radius: 16px; border: 1px dashed #ccc;">
+            <p>No active card found.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-span-2">
+        <div class="table-card">
+            <div style="padding: 20px; border-bottom: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="font-size: 1.1rem; font-weight: 700;">Registered Cards</h3>
+                <span style="font-size: 0.85rem; color: gray;">Manage cards</span>
+            </div>
+            
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Card Number</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if card %}
+                    <tr>
+                        <td><span style="font-weight: 500; text-transform: uppercase;">{{ card.card_type|default:"Debit" }}</span></td>
+                        <td style="font-family: monospace;">
+                            **** {{ card.card_number|slice:"-4:" }}
+                        </td>
+                        <td>
+                            <span class="status-badge {% if card.status == 'Active' %}status-active{% else %}status-blocked{% endif %}">
+                                {{ card.status }}
+                            </span>
+                        </td>
+                        <td>
+                            <i class="fas fa-ellipsis-v" style="color: gray; cursor: pointer;"></i>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" style="text-align: center; padding: 40px; color: gray;">
+                            No cards. <a href="{% url 'card_request' %}" style="color: var(--primary-green);">Request now</a>
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    let isCardVisible = false;
+
+    function toggleCardDetails(btn) {
+        const numberEl = document.getElementById('display-number');
+        const expiryEl = document.getElementById('display-expiry');
+        const cvvEl = document.getElementById('display-cvv');
+        const icon = btn.querySelector('i');
+
+        if (!isCardVisible) {
+            numberEl.textContent = formatCardNumber(numberEl.getAttribute('data-value'));
+            expiryEl.textContent = expiryEl.getAttribute('data-value');
+            cvvEl.textContent = cvvEl.getAttribute('data-value');
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+            btn.style.background = 'rgba(255, 255, 255, 0.3)';
+            isCardVisible = true;
+        } else {
+            numberEl.innerHTML = '<span class="masked-dots">•••• •••• •••• ••••</span>';
+            expiryEl.innerHTML = '<span class="masked-dots" style="font-size: 1.5rem;">••/••</span>';
+            cvvEl.innerHTML = '<span class="masked-dots" style="font-size: 1.5rem;">•••</span>';
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+            btn.style.background = 'rgba(255, 255, 255, 0.15)';
+            isCardVisible = false;
+        }
+    }
+
+    function formatCardNumber(num) {
+        if (!num) return "0000 0000 0000 0000";
+        return num.replace(/\s+/g, '').replace(/(.{4})/g, '$1 ').trim();
+    }
+</script>
+{% endblock %}

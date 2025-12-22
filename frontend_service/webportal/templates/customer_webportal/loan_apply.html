@@ -1,0 +1,21 @@
+{% extends 'dashboard_layout.html' %}
+
+{% block title %}Apply for Loan - Arhan Financial{% endblock %}
+{% block page_heading %}Loan Application{% endblock %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 0 auto;">
+    <div class="card">
+        <h3 class="mb-4">Request a Loan</h3>
+        <p class="text-gray mb-4">Fill out the details below to submit your loan application for review.</p>
+
+        <form method="POST">
+            {% csrf_token %}
+            
+            {{ form.as_p }}
+
+            <button type="submit" class="btn-primary mt-4">Submit Application</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

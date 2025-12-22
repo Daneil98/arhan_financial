@@ -30,7 +30,6 @@ class PaymentRequest(models.Model):
     Represents a user's intention to move funds.
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    reference = models.CharField(max_length=100, unique=True)
     payer_account_id = models.IntegerField(help_text="BankAccount number (Account Service)")
     payee_account_id = models.IntegerField(help_text="BankAccount number (Account Service)")
     amount = models.DecimalField(max_digits=18, decimal_places=2)

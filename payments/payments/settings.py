@@ -34,10 +34,6 @@ SECRET_KEY = 'django-insecure-^%wz!cfi16s2k4cmw@wkrs5+lqk=ziz1nglzxw+uc@-2inek6)
 DEBUG = True
 
 ALLOWED_HOSTS = ['*', 'identity', 'account', 'payments', 'ledger']
-LOGIN_REDIRECT_URL = 'dashboard'
-LOGOUT_REDIRECT_URL = 'index'
-LOGIN_URL = 'login'
-LOGOUT_URL = 'logout'
 
 JWT_SHARED_SECRET = "your-very-long-and-secure-shared-jwt-secret-key-1234567890"
 
@@ -47,7 +43,8 @@ SIMPLE_JWT = {
     'REFRESH_TOKEN_LIFEIME': timedelta(days=15),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
-    
+    'TOKEN_USER_CLASS': 'payments.models.User', 
+    'TOKEN_CLAIMS_SERIALIZER': 'payments.serializers.combine_custom_claims',
 }
 
 #CELERY_RESULT_BACKEND = os.getenv('REDIS_URL', 'redis://redis:6379/0')
@@ -84,7 +81,15 @@ REST_FRAMEWORK = {
        #'account_service.utils.UUIDSafeJWTAuthentication',
        'rest_framework_simplejwt.authentication.JWTAuthentication',
        # 'rest_framework.authentication.SessionAuthentication',
-    ]
+    ],
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle'
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '1000/day',
+        'user': '1000/day'
+    }
 }
 
 MIDDLEWARE = [

@@ -1,0 +1,239 @@
+{% extends 'staff_dashboard_layout.html' %}
+{% load humanize %}
+
+{% block title %}Admin Console - Arhan Financial{% endblock %}
+{% block page_heading %}Bank Overview{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* --- ADMIN THEME OVERRIDES --- */
+    
+    /* Darker, more corporate headers for Admin */
+    .metric-card {
+        background: white;
+        border-radius: 16px;
+        padding: 25px;
+        box-shadow: var(--shadow-card);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        height: 160px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* Main Bank Pool Card (Deep Navy/Slate) */
+    .card-bank-pool {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        color: white;
+    }
+
+    .metric-label { font-size: 0.85rem; opacity: 0.8; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
+    .metric-value { font-size: 1.8rem; font-weight: 700; margin-bottom: 5px; }
+    .metric-trend { font-size: 0.8rem; display: flex; align-items: center; gap: 5px; }
+    .trend-up { color: #10B981; }
+    .trend-down { color: #EF4444; }
+
+    /* Quick Action Bar */
+    .admin-action-bar {
+        background: white;
+        border-radius: 16px;
+        padding: 15px 20px;
+        display: flex;
+        gap: 15px;
+        margin-bottom: 30px;
+        box-shadow: var(--shadow-card);
+        overflow-x: auto;
+    }
+    
+    .admin-action-btn {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 20px;
+        border-radius: 12px;
+        background: #F8FAFC;
+        border: 1px solid var(--border-light);
+        color: var(--primary-dark);
+        font-weight: 600;
+        font-size: 0.9rem;
+        white-space: nowrap;
+        transition: all 0.2s;
+        cursor: pointer;
+        text-decoration: none;
+    }
+    .admin-action-btn:hover {
+        background: #F1F5F9;
+        border-color: #CBD5E1;
+        transform: translateY(-2px);
+    }
+    
+    .badge-count {
+        background: #EF4444;
+        color: white;
+        font-size: 0.7rem;
+        padding: 2px 6px;
+        border-radius: 10px;
+        margin-left: 5px;
+    }
+
+    /* Table Styles */
+    .status-pill { padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
+    .pill-success { background: #ECFDF5; color: #059669; }
+    .pill-warn { background: #FFFBEB; color: #D97706; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+
+    <div class="col-span-2">
+        <div class="metric-card card-bank-pool">
+            <i class="fas fa-landmark" style="position: absolute; right: -20px; bottom: -20px; font-size: 8rem; opacity: 0.05;"></i>
+            
+            <div>
+                <div class="metric-label">Total Bank Liquidity</div>
+                <div class="metric-value">₦ {{ bank_balance|intcomma }}</div>
+            </div>
+            
+            <div style="margin-top: auto;">
+                <div class="metric-trend" style="color: #94A3B8;">
+                    <i class="fas fa-chart-line"></i> Live Position
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-span-1">
+        <div class="metric-card">
+            <div>
+                <div class="metric-label" style="color: #64748B;">Total Inflow (24h)</div>
+                <div class="metric-value" style="color: #059669;">+ ₦ {{ total_inflow|intcomma }}</div>
+            </div>
+            <div class="metric-trend trend-up">
+                <i class="fas fa-arrow-up"></i> 12% vs yesterday
+            </div>
+        </div>
+    </div>
+
+    <div class="col-span-1">
+        <div class="metric-card">
+            <div>
+                <div class="metric-label" style="color: #64748B;">Total Outflow (24h)</div>
+                <div class="metric-value" style="color: #DC2626;">- ₦ {{ total_outflow|intcomma }}</div>
+            </div>
+            <div class="metric-trend" style="color: #64748B;">
+                <i class="fas fa-minus"></i> Stable
+            </div>
+        </div>
+    </div>
+
+
+    <div class="col-span-4">
+        <div class="admin-action-bar">
+            
+            <a href="{% url 'loan_search' %}" class="admin-action-btn">
+                <i class="fas fa-hand-holding-dollar" style="color: #D97706;"></i> 
+                Manage Loans 
+                {% if pending_loans > 0 %}<span class="badge-count">{{ pending_loans }}</span>{% endif %}
+            </a>
+
+            <a href="{% url 'search_ticket' %}" class="admin-action-btn">
+                <i class="fas fa-headset" style="color: #4F46E5;"></i> 
+                Support Tickets
+                {% if open_tickets > 0 %}<span class="badge-count">{{ open_tickets }}</span>{% endif %}
+            </a>
+
+            <a href="{% url 'block_account' %}" class="admin-action-btn">
+                <i class="fas fa-user-lock" style="color: #DC2626;"></i> 
+                Block Account
+            </a>
+
+            <a href="{% url 'ledger_list' %}" class="admin-action-btn">
+                <i class="fas fa-book" style="color: #475569;"></i> 
+                View Ledger
+            </a>
+
+        </div>
+    </div>
+
+
+    <div class="col-span-3">
+        <div class="card">
+            <div class="flex justify-between items-center mb-4">
+                <h3 style="font-size: 1.1rem; font-weight: 600;">Recent System Transactions</h3>
+                <a href="#" style="font-size: 0.85rem; color: var(--primary-green);">View All</a>
+            </div>
+
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="text-align: left; color: #64748B; font-size: 0.8rem; border-bottom: 1px solid #E2E8F0;">
+                        <th style="padding: 10px;">REF ID</th>
+                        <th style="padding: 10px;">TYPE</th>
+                        <th style="padding: 10px;">AMOUNT</th>
+                        <th style="padding: 10px;">STATUS</th>
+                        <th style="padding: 10px;">DATE</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in recent_transactions %}
+                    <tr style="border-bottom: 1px solid #F1F5F9; font-size: 0.9rem;">
+                        <td style="padding: 15px 10px; font-family: monospace;">{{ t.transaction_id|slice:":8" }}</td>
+                        <td style="padding: 15px 10px;">{{ t.transaction_type|title }}</td>
+                        <td style="padding: 15px 10px; font-weight: 600;">₦ {{ t.amount|intcomma }}</td>
+                        <td style="padding: 15px 10px;">
+                            <span class="status-pill {% if t.status == 'success' %}pill-success{% else %}pill-warn{% endif %}">
+                                {{ t.status|default:"Success" }}
+                            </span>
+                        </td>
+                        <td style="padding: 15px 10px; color: #64748B; font-size: 0.8rem;">
+                            {{ t.created_at|slice:":10" }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 30px; color: #94A3B8;">No recent transactions found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="col-span-1">
+        <div class="card" style="height: 100%;">
+            <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 20px; color: #475569;">System Alerts</h3>
+            
+            {% if pending_loans > 0 %}
+            <div style="display: flex; gap: 10px; padding: 15px; background: #FFFBEB; border-radius: 12px; margin-bottom: 15px; border-left: 4px solid #D97706;">
+                <i class="fas fa-exclamation-triangle" style="color: #D97706; margin-top: 2px;"></i>
+                <div>
+                    <div style="font-weight: 600; font-size: 0.9rem; color: #92400E;">Pending Loans</div>
+                    <div style="font-size: 0.8rem; color: #B45309;">{{ pending_loans }} applications need review.</div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if open_tickets > 0 %}
+            <div style="display: flex; gap: 10px; padding: 15px; background: #EEF2FF; border-radius: 12px; margin-bottom: 15px; border-left: 4px solid #4F46E5;">
+                <i class="fas fa-envelope-open-text" style="color: #4F46E5; margin-top: 2px;"></i>
+                <div>
+                    <div style="font-weight: 600; font-size: 0.9rem; color: #3730A3;">Open Tickets</div>
+                    <div style="font-size: 0.8rem; color: #4338CA;">{{ open_tickets }} tickets require response.</div>
+                </div>
+            </div>
+            {% endif %}
+
+            <div style="display: flex; gap: 10px; padding: 15px; background: #F8FAFC; border-radius: 12px; border-left: 4px solid #94A3B8;">
+                <i class="fas fa-server" style="color: #64748B; margin-top: 2px;"></i>
+                <div>
+                    <div style="font-weight: 600; font-size: 0.9rem; color: #334155;">System Status</div>
+                    <div style="font-size: 0.8rem; color: #475569;">All services operational.</div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+{% endblock %}

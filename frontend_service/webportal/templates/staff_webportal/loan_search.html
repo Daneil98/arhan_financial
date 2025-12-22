@@ -1,0 +1,34 @@
+{% extends 'staff_dashboard_layout.html' %}
+
+{% block title %}Find Loan{% endblock %}
+{% block page_heading %}Loan Management{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+    <div class="col-span-4" style="display: flex; justify-content: center; align-items: center; min-height: 400px;">
+        
+        <div class="card" style="width: 100%; max-width: 500px; text-align: center; padding: 40px;">
+            <div style="width: 60px; height: 60px; background: #FFF6E6; color: #FFB37B; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; font-size: 1.5rem;">
+                <i class="fas fa-search-dollar"></i>
+            </div>
+            
+            <h3 style="font-size: 1.3rem; margin-bottom: 10px;">Find Loan Application</h3>
+            <p class="text-gray" style="margin-bottom: 30px;">Enter the Reference ID to view details or update status.</p>
+
+            <form method="POST">
+                {% csrf_token %}
+                <div style="margin-bottom: 20px; text-align: left;">
+                    <label style="display: block; font-weight: 500; margin-bottom: 8px; color: var(--secondary-text);">Loan Reference ID</label>
+                    <input type="text" name="loan_id" placeholder="e.g. LN-2025-8839" required
+                           style="width: 100%; padding: 12px; border: 1px solid var(--border-light); border-radius: 10px; font-size: 1rem;">
+                </div>
+                
+                <button type="submit" class="btn-primary" style="width: 100%; padding: 12px; justify-content: center;">
+                    Search Loan
+                </button>
+            </form>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

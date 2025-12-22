@@ -1,0 +1,135 @@
+{% extends 'dashboard_layout.html' %}
+{% load humanize %}
+
+{% block title %}Dashboard - Arhan Financial{% endblock %}
+{% block page_heading %}Overview{% endblock %}
+
+{% block content %}
+<style>
+    .table-container {
+        overflow-x: auto; /* Allows horizontal scroll on mobile */
+        -webkit-overflow-scrolling: touch; /* Smooth scroll on iOS */
+    }
+</style>
+
+<div class="dashboard-grid">
+
+    <div class="col-span-2">
+        <div class="card" style="background: linear-gradient(135deg, #10B981 0%, #047857 100%); color: white; height: 100%; display: flex; flex-direction: column; justify-content: center;">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p style="opacity: 0.9; font-size: 0.9rem; margin-bottom: 5px;">Total Balance</p>
+                    <h2 style="font-size: 2.2rem; font-weight: 700;">₦ {{ dashboard_data.balance|default:"0.00"|intcomma }}</h2>
+                </div>
+                <div style="background: rgba(255,255,255,0.2); width: 45px; height: 45px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-wallet" style="font-size: 1.2rem;"></i>
+                </div>
+            </div>
+            <p style="margin-top: 15px; font-size: 0.85rem; opacity: 0.9;">
+                <i class="fas fa-arrow-trend-up"></i> +2.4% from last month
+            </p>
+        </div>
+    </div>
+
+    <div class="col-span-1">
+        <div class="card" style="height: 100%; display: flex; flex-direction: column; justify-content: center;">
+            <div class="flex items-center gap-3 mb-2">
+                <div style="width: 35px; height: 35px; background: #E7F8F0; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--primary-green);">
+                    <i class="fas fa-arrow-down"></i>
+                </div>
+                <span class="text-gray" style="font-size: 0.85rem;">Income</span>
+            </div>
+            <h3 style="font-size: 1.4rem; font-weight: 600;">₦ {{ dashboard_data.total_income|default:"0.00"|intcomma }}</h3>
+        </div>
+    </div>
+
+    <div class="col-span-1">
+        <div class="card" style="height: 100%; display: flex; flex-direction: column; justify-content: center;">
+            <div class="flex items-center gap-3 mb-2">
+                <div style="width: 35px; height: 35px; background: #FFF5F5; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #E53E3E;">
+                    <i class="fas fa-arrow-up"></i>
+                </div>
+                <span class="text-gray" style="font-size: 0.85rem;">Expenses</span>
+            </div>
+            <h3 style="font-size: 1.4rem; font-weight: 600;">₦ {{ dashboard_data.total_expense|default:"0.00"|intcomma }}</h3>
+        </div>
+    </div>
+
+
+    <div class="col-span-1">
+        <div class="card" style="height: 100%;">
+            <h3 class="mb-3" style="font-size: 1rem; font-weight: 600;">Quick Actions</h3>
+            
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <a href="{% url 'internal_transfer' %}" class="btn-outline" style="justify-content: center; border-radius: 10px; padding: 12px;">
+                    <i class="fas fa-paper-plane" style="margin-right: 8px;"></i> Send Money
+                </a>
+                
+                <a href="{% url 'loan_apply' %}" class="btn-outline" style="justify-content: center; border-radius: 10px; padding: 12px;">
+                    <i class="fas fa-hand-holding-dollar" style="margin-right: 8px;"></i> Get Loan
+                </a>
+
+                <a href="{% url 'activity' %}" class="btn-outline" style="justify-content: center; border-radius: 10px; padding: 12px;">
+                    <i class="fas fa-grid-2" style="margin-right: 8px;"></i> View All
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-span-3">
+        <div class="card" style="height: 100%;">
+            <div class="flex justify-between items-center mb-4">
+                <h3 style="font-size: 1.1rem; font-weight: 600;">Recent Transactions</h3>
+                <a href="{% url 'transactions' %}" style="color: var(--primary-green); font-size: 0.9rem; font-weight: 500;">View All</a>
+            </div>
+
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid var(--border-light);">
+                            <th style="text-align: left; padding: 10px; color: var(--secondary-text); font-size: 0.85rem;">Transaction</th>
+                            <th style="text-align: left; padding: 10px; color: var(--secondary-text); font-size: 0.85rem;">Amount</th>
+                            <th style="text-align: left; padding: 10px; color: var(--secondary-text); font-size: 0.85rem;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for transaction in dashboard_data.recent_transactions %}
+                            <tr style="border-bottom: 1px solid var(--border-light);">
+                                <td style="padding: 15px 10px;">
+                                    <div class="flex items-center">
+                                        <div style="width: 35px; height: 35px; background: #F3F4F6; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-right: 12px; font-size: 0.8rem;">
+                                            <i class="fas fa-arrow-right-arrow-left text-gray"></i>
+                                        </div>
+                                        <div>
+                                            <p style="font-weight: 600; font-size: 0.9rem;">{{ transaction.payer_account_id }}</p>
+                                            <p style="font-size: 0.75rem; color: gray;">{{ transaction.date|default:"Today" }}</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                
+                                <td style="padding: 15px 10px; font-weight: 600; font-size: 0.95rem;">
+                                    ₦ {{ transaction.amount|intcomma }}
+                                </td>
+                                
+                                <td style="padding: 15px 10px;">
+                                    <span style="background: #E7F8F0; color: var(--primary-green); padding: 4px 10px; border-radius: 15px; font-size: 0.75rem; font-weight: 600;">
+                                        Completed
+                                    </span>
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="3" style="text-align: center; padding: 30px; color: gray;">
+                                    No recent activity found.
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+{% endblock %}
