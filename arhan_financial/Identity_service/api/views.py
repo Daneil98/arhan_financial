@@ -17,8 +17,7 @@ from django.db import transaction
 
 
 #ACCOUNT IDENTITY API VIEWS
-
-
+"""
 
 class CustomerRegisterView(APIView):
     permission_classes = [AllowAny]
@@ -58,7 +57,7 @@ class CustomerRegisterView(APIView):
             'message': 'Account created successfully',
             'user_id': user.id 
         }, status=status.HTTP_201_CREATED)
-
+"""
 
 
 class CustomerRegisterView(APIView):
@@ -153,7 +152,7 @@ class LoginView(APIView):
                     'username': str(user_.username),
                     "user_id": str(user_.id),
                 }
-                publish_user_loggedIn.apply_async(args=[user_data])
+                #publish_user_loggedIn.apply_async(args=[user_data])
                 return Response({'status': 'success', 'message': 'Logged in successfully', "access_token": access_token, "refresh_token": str(refresh)}, status=status.HTTP_200_OK)
             else:
                 return Response({'status': 'failed', 'message': 'User account is inactive'}, status=status.HTTP_403_FORBIDDEN)

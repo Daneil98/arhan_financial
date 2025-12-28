@@ -1,7 +1,6 @@
 from django.db import models
 import uuid
 from datetime import datetime, timedelta
-from dateutil.relativedelta import relativedelta
 
 # Create your models here.
     

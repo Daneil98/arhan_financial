@@ -13,4 +13,4 @@ class CardPaymentSerializer(serializers.Serializer):
     amount = serializers.DecimalField(max_digits=12, decimal_places=2, required=True)
     card_number = serializers.CharField(required=True)
     cvv = serializers.IntegerField(required=True)
-    PIN = serializers.IntegerField(required=True)
+    pin = serializers.IntegerField(required=True)

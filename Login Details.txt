@@ -1,0 +1,11 @@
+Customer 1
+username: david98
+password: David123
+
+Customer 2
+username: daniel98
+password: Daniel123
+
+Staff
+username: gideon98
+password: Gideon123

@@ -12,7 +12,9 @@ services:
 
   # --- 1. Identity Service (arhan_financial) ---
   identity:
-    build: ./arhan_financial
+    build:
+      context: ./arhan_financial
+      dockerfile: Dockerfile   # The exact file name
     command: python manage.py runserver 0.0.0.0:8001
     volumes:
       - ./arhan_financial:/app
@@ -40,7 +42,9 @@ services:
 
   # --- 2. Account Service (account_services) ---
   account:
-    build: ./account_services
+    build: 
+      context: ./account_services
+      dockerfile: Dockerfile   # The exact file name
     command: python manage.py runserver 0.0.0.0:8002
     volumes:
       - ./account_services:/app
@@ -70,12 +74,14 @@ services:
 
   # --- 3. Payments Service (payments) ---
   payments:
-    build: ./payments
-    command: python manage.py runserver 0.0.0.0:8003
+    build:
+      context: ./payments
+      dockerfile: Dockerfile   # The exact file name
+    command: python manage.py runserver 0.0.0.0:8004
     volumes:
       - ./payments:/app
     ports:
-      - "8003:8003"
+      - "8004:8004"
     environment:
       - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
       - ACCOUNT_SERVICE_BASE_URL=http://account:8002
@@ -101,12 +107,14 @@ services:
 
   # --- 4. Ledger Service (ledger_service) ---
   ledger:
-    build: ./ledger_service
-    command: python manage.py runserver 0.0.0.0:8004
+    build: 
+      context: ./ledger_service
+      dockerfile: Dockerfile   # The exact file name
+    command: python manage.py runserver 0.0.0.0:8003
     volumes:
       - ./ledger_service:/app
     ports:
-      - "8004:8004"
+      - "8003:8003"
     environment:
       - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
     depends_on:
@@ -126,6 +134,23 @@ services:
       - ledger
     networks:
       - arhan-network
+
+
+  # --- 5. Frontend Service (frontend_service) ---
+  frontend:
+    build: 
+      context: ./frontend_service
+      dockerfile: Dockerfile   # The exact file name
+    command: python manage.py runserver 0.0.0.0:8005
+    volumes:
+      - ./frontend_service:/app
+    ports:
+      - "8005:8005"
+    environment:
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
+    networks:
+      - arhan-network
+
 
 networks:
   arhan-network:

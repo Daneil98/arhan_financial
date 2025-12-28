@@ -39,6 +39,22 @@ def consume_customer_created(self, data):
         }
     )
     print(f"Created service account for customer {user_id_value}")
+    
+@shared_task(name="consume.payment.staff.created", bind=True, acks_late=True)
+def consume_customer_created(self, data):
+    user_id_value = data.get("id")
+    email_value = data.get("email")
+    username = data.get("username")
+    user, created = User.objects.get_or_create(
+        id=user_id_value,
+        defaults={
+            'username': username, # or whatever unique field you use
+            'email': email_value,
+            'is_active': True
+        }
+    )
+    print(f"Created service account for staff {user_id_value}")
+
 
 @shared_task(name="consume.payment.user.logged_in", bind=True, acks_late=True)
 def consume_user_logged_in(self, data):
@@ -100,7 +116,7 @@ def consume_loan_updated(self, data):
     payee_id = data['payee_account_id']
 
     
-    if loan_status != 'Approved':
+    if loan_status != 'approved':
         print("Loan has not been Approved")
         return 
     
@@ -140,6 +156,7 @@ def consume_loan_updated(self, data):
                                         amount=amount, status="PENDING").first()
     if payment:
         payment.status = "COMPLETED"
+        payment.metadata = {'TYPE': 'LOAN DISBURSEMENT'}
         payment.processed_at = datetime.now()
         payment.save()       
         
@@ -211,6 +228,7 @@ def loan_repayment(self, data):
                                         amount=amount_to_repay, status="PENDING").first()
     if payment:
         payment.status = "COMPLETED"
+        payment.metadata = {'TYPE': 'LOAN REPAYMENT'}
         payment.processed_at = datetime.now()
         payment.save()       
         
@@ -290,6 +308,7 @@ def process_internal_transfer(self, data):
                                         amount=amount, status="PENDING").first()
     if payment:
         payment.status = "COMPLETED"
+        payment.metadata = {'TYPE': 'USER INTERNAL TRANSFER'}
         payment.processed_at = datetime.now()
         payment.save()       
         
@@ -379,6 +398,7 @@ def initiate_card_payment(self, data):
     if payment:
         payment.status = "COMPLETED"
         payment.payer_account_id = payer_id # Ensure this is set
+        payment.metadata = {'TYPE': 'USER CARD PAYMENT'}
         payment.processed_at = datetime.now()    
         payment.save()
     else:

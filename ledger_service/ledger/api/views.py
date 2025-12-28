@@ -174,25 +174,4 @@ class BankLogs(APIView):
                         status=200)
         
 
-class TransactionLogs(APIView):
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
-    
-    def get(self, requests):
-        transaction_history = []
-        
-        transactions = Transaction.objects.all()
-        
-        for transaction in transactions:
-            data = {
-                'user_id': transaction.user_id,
-                'reference': transaction.reference,
-                'description': transaction.description,
-                'created_at': transaction.created_at,
-            }
-            transaction_history.append(data)
-        
-        return Response({"message": "Transaction data retrieved successfully", 
-                        'history': transaction_history}, status=200)
-    
     

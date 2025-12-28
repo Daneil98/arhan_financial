@@ -45,6 +45,24 @@ def consume_customer_created(self, data):
     print(f"Created service account for customer {user_id_value}")
 
 
+@shared_task(name="consume.ledger.sfaff.created", bind=True, acks_late=True)
+def consume_staff_created(self, data):
+    user_id_value = data.get("id")
+    email_value = data.get("email")
+    username = data.get("username")
+    user, created = User.objects.get_or_create(
+        id=user_id_value,
+        defaults={
+            'username': username, # or whatever unique field you use
+            'email': email_value,
+            'is_active': True,
+        }
+    )
+
+    print(f"Created service account for staff {user_id_value}")
+
+
+
 @shared_task(name="consume.ledger.user.logged_in", bind=True, acks_late=True)
 def consume_user_logged_in(self, data):
     user_id_value = data.get("user_id")
@@ -98,7 +116,7 @@ def consume_loan_updated(self, data):
     loan_status = data.get("loan_status")
 
     # Only process accounting when loan is approved
-    if loan_status != "Approved":
+    if loan_status != "approved":
         print(f"[loan_updated] Loan {loan_id} not approved — skipping ledger posting.")
         return
 

@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 import uuid
 from django.conf import settings
+from decimal import Decimal
 
 
 # Create your models here.
@@ -112,31 +113,33 @@ class Loan(models.Model):
         return f"{self.loan_status} Loan of {self.amount}, owned by {self.user_id} for {self.duration} from {self.start_date} to {self.end_date}" 
     
     def save(self, *args, **kwargs):
-        # 1. Parse the duration value (e.g., "12 Months" -> 12)
+        # 1. Parse Duration
         try:
-            # Extract the number from the string (e.g., '12' from '12 Months')
             months = int(self.duration.split(' ')[0])
         except (ValueError, IndexError):
-            # Fallback in case of unexpected format
-            months = 1
-            self.monthly_payment = self.amount_to_repay / months
+            months = 1 # Default fallback
+
+        # 2. ALWAYS Calculate Repayment Details (regardless of status)
+        # Convert interest rate to a multiplier (e.g. 12% -> 0.12)
+        interest_multiplier = self.interest_rate / Decimal(100)
+        
+        # Calculate Total Repayment: Principal + (Principal * Interest)
+        self.amount_to_repay = self.amount * (1 + interest_multiplier)
+        
+        # Calculate Monthly Payment
+        self.monthly_repayment = self.amount_to_repay / Decimal(months)
+
+        # 3. Handle Dates based on Status
+        if self.loan_status == 'approved' and not self.start_date:
+            # Only set start date if approved and not already set
             self.start_date = datetime.now().date()
             self.end_date = self.start_date + relativedelta(months=+months)
-            
-        # 2. Calculate the end_date using start_date and parsed months
-        # We use relativedelta for accurate month addition, which handles 
-        # things like crossing years correctly.
-        if self.loan_status == 'approved':
-            self.amount_to_repay = self.amount * (1 + (self.interest_rate/100))
-            self.monthly_payment = self.amount_to_repay / months
-            self.start_date = datetime.now().date()
-            self.end_date = self.start_date + relativedelta(months=+months)
-        else:
+        elif self.loan_status == 'pending':
+            # Keep dates null until approval
             self.start_date = None
             self.end_date = None
-        # 3. Call the actual save method
+
         super().save(*args, **kwargs)
-    
     
 class IT_Tickets(models.Model):
     user_id = models.IntegerField(unique=True)

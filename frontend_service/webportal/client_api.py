@@ -83,9 +83,10 @@ class AccountClient:
         url = f"{ACCOUNT_URL}/account_service_api/loan_apply/"
         return requests.post(url, json=data, headers=self.headers)
     
-    def search_loan(self, data):
+    def search_loan(self, account_number):
         url = f"{ACCOUNT_URL}/account_service_api/loan_operations/"
-        return requests.get(url, json=data, headers=self.headers)
+        payload = {"account_number": account_number}
+        return requests.get(url, params=payload, headers=self.headers)
     
     def update_loan(self, data):
         url = f"{ACCOUNT_URL}/account_service_api/loan_operations/"
@@ -103,12 +104,13 @@ class AccountClient:
         url = f"{ACCOUNT_URL}/account_service_api/staff_block_account/"
         return requests.post(url, json=data, headers=self.headers)
     
-    def get_ticket(self, data):
+    def get_ticket(self, ticket_id):
         url = f"{ACCOUNT_URL}/account_service_api/fetch_update_ticket/"
-        return requests.get(url, json=data, headers=self.headers)
+        payload = {"ticket_id": ticket_id}
+        return requests.get(url, params=payload, headers=self.headers)
     
     def update_ticket(self, data):
-        url = f"{ACCOUNT_URL}/account_service_api/fetch_update_tickets/"
+        url = f"{ACCOUNT_URL}/account_service_api/fetch_update_ticket/"
         return requests.post(url, json=data, headers=self.headers)
     
     def get_bankpool_details(self):
@@ -156,8 +158,4 @@ class BankClient:
         
     def get_bank_records(self):
         url = f"{LEDGER_URL}/ledger_api/ledger_logs/"
-        return requests.get(url, headers=self.headers)
-    
-    def get_transactions(self):
-        url = f"{LEDGER_URL}/ledger_api/transaction_logs/"
         return requests.get(url, headers=self.headers)

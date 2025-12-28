@@ -149,7 +149,7 @@
                 Block Account
             </a>
 
-            <a href="{% url 'ledger_list' %}" class="admin-action-btn">
+            <a href="{% url 'bank_ledger_records' %}" class="admin-action-btn">
                 <i class="fas fa-book" style="color: #475569;"></i> 
                 View Ledger
             </a>
@@ -214,12 +214,12 @@
             </div>
             {% endif %}
 
-            {% if open_tickets > 0 %}
+            {% if pending_tickets > 0 %}
             <div style="display: flex; gap: 10px; padding: 15px; background: #EEF2FF; border-radius: 12px; margin-bottom: 15px; border-left: 4px solid #4F46E5;">
                 <i class="fas fa-envelope-open-text" style="color: #4F46E5; margin-top: 2px;"></i>
                 <div>
                     <div style="font-weight: 600; font-size: 0.9rem; color: #3730A3;">Open Tickets</div>
-                    <div style="font-size: 0.8rem; color: #4338CA;">{{ open_tickets }} tickets require response.</div>
+                    <div style="font-size: 0.8rem; color: #4338CA;">{{ pending_tickets }} tickets require response.</div>
                 </div>
             </div>
             {% endif %}

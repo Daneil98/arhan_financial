@@ -30,7 +30,7 @@ class DashboardView(APIView):
         
         if account.active == False:
             return Response ({'message': 'Account is already blocked.'}, status=status.HTTP_403_FORBIDDEN)
-    
+        
         data = {
             'id': account.id,
             'username': request.user.username,
@@ -125,7 +125,6 @@ class CreateLoanApplication(APIView):
     permission_classes = [IsAuthenticated]
     queryset = Loan.objects.all()
 
-    @transaction.atomic
     def post(self, request, format=None):
         serializer = LoanSerializer(data=request.data)
         
@@ -137,18 +136,19 @@ class CreateLoanApplication(APIView):
                 return Response({'message': 'You already have an existing loan or loan application'}, 
                                 status= status.HTTP_409_CONFLICT)
             else:
-                serializer.save(user_id =user_id, loan_status='pending', account_number=account_number)
+                serializer.save(user_id =user_id, loan_status='pending', account_number=account_number, )
                                        
                 return Response({'message': 'Loan application submitted successfully.'},
                             status=status.HTTP_201_CREATED)    
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
 class GetPendingLoans(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
     
-    def get(request):
+    def get(self, request):
         loans = Loan.objects.filter(loan_status='pending').count()
 
         return Response(loans, status=200)
@@ -157,7 +157,7 @@ class GetPendingTickets(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
     
-    def get(request):
+    def get(self, request):
         tickets = IT_Tickets.objects.filter(resolved=False).count()
         return Response(tickets, status=200)
 
@@ -168,14 +168,15 @@ class GetAndUpdateLoan(APIView):    #CHECH THISS
     queryset = Loan.objects.all()
     
     def get(self, request):
-        serializer = GetLoanSerializer(data = request.data)
+        serializer = GetLoanSerializer(data=request.query_params)
         
         if serializer.is_valid():
-            user_id = serializer.validated_data['user_id']
-            loan = get_object_or_404(Loan, user_id=user_id)
+            account_number = serializer.validated_data['account_number']
+            loan = get_object_or_404(Loan, account_number=account_number)
             
             loan_data = {
                 'user_id': loan.user_id,
+                'loan_id': loan.loan_id,
                 'amount': loan.amount,
                 'duration': loan.duration,
                 'interest_rate': loan.interest_rate,
@@ -257,10 +258,11 @@ class BankPoolDetails(APIView):
     
     def get(self, request, format=None):
         bank_pool = BankPool.objects.first()
+        data = {
+            "total_funds": str(bank_pool.total_funds)
+        }
         
-        total_funds = bank_pool.total_funds
-        
-        return Response(total_funds, status=status.HTTP_200_OK)  
+        return Response(data, status=status.HTTP_200_OK) 
     
 class BankAccountDetails(APIView):
     authentication_classes = [JWTAuthentication]
@@ -532,9 +534,10 @@ class CreateTicket(APIView):
         serializer = CreateTicketSerializer(data=request.data)
         if serializer.is_valid():
             user_id = request.user.id
+            subject = serializer.validated_data['subject']
             complaint = serializer.validated_data['complaint']
             
-            IT_Tickets.objects.create(user_id=user_id, complaint=complaint)
+            IT_Tickets.objects.create(user_id=user_id, subject = subject, complaint=complaint)
             
             return Response({'message': 'Ticket created successfully.'}, status=status.HTTP_201_CREATED)  
         else:
@@ -548,12 +551,20 @@ class GetAndUpdateTicket(APIView):    #CHECH THISS
     queryset = IT_Tickets.objects.all()
     
     def get(self, request, format=None):
-        serializer = UpdateTicketSerializer(data = request.data)
+        serializer = GetTicketSerializer(data=request.query_params)
 
         if serializer.is_valid():
-            ticket = get_object_or_404(IT_Tickets, ticket_id = serializer.ticket_id)
+            ticket_id = serializer.validated_data['ticket_id']
+            ticket = get_object_or_404(IT_Tickets, id =ticket_id)
             
-            return Response({'message': 'Ticket successfully retrieved.', 'ticket_data': {ticket}},
+            data = {
+                'ticket_id': ticket.id,
+                'user_id': ticket.user_id,
+                'subject': ticket.subject,
+                'complaint': ticket.complaint,
+            }
+            
+            return Response({'message': 'Ticket successfully retrieved.', 'data': data},
                             status=status.HTTP_200_OK) 
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -562,13 +573,17 @@ class GetAndUpdateTicket(APIView):    #CHECH THISS
         serializer = UpdateTicketSerializer(data=request.data)
         
         if serializer.is_valid():
-            ticket = get_object_or_404(IT_Tickets, id=serializer.ticket_id, user_id=id)
+            id = serializer.validated_data['ticket_id']
+            resolved = serializer.validated_data['resolved']
+            remarks = serializer.validated_data['remarks']
+            ticket = get_object_or_404(IT_Tickets, id=id)
             
-            if ticket.taken:
-                return Response({'message': 'Ticket is already taken'}, 
+            if ticket.resolved == True:
+                return Response({'message': 'Ticket has already been'}, 
                                 status= status.HTTP_409_CONFLICT)
             
-            ticket.taken = True
+            ticket.resolved = resolved
+            ticket.remarks = remarks
             ticket.save()
         
             return Response({'message': 'Ticket updated successfully.'}, status=status.HTTP_200_OK)  

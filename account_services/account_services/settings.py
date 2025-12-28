@@ -48,7 +48,6 @@ SIMPLE_JWT = {
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
     'TOKEN_USER_CLASS': 'account_service.models.User', 
-    'TOKEN_CLAIMS_SERIALIZER': 'account_service.serializers.combine_custom_claims',
 }
 
 #CELERY_RESULT_BACKEND = os.getenv('REDIS_URL', 'redis://redis:6379/0')

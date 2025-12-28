@@ -44,7 +44,6 @@ SIMPLE_JWT = {
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
     'TOKEN_USER_CLASS': 'Identity_service.models.User', 
-    'TOKEN_CLAIMS_SERIALIZER': 'Identity_service.serializers.combine_custom_claims',
 }
 
 
@@ -184,13 +183,7 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 
 USE_TZ = True
-"""
 
-AUTHENTICATION_BACKENDS = [
-    'django.contrib.auth.backends.ModelBackend',
-    #'allauth.account.auth_backends.AuthenticationBackend',
-]   
-"""
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 

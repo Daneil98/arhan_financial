@@ -112,7 +112,7 @@ class CreateTicketForm(forms.Form):
 
 class GetLoanForm(forms.Form):
     account_number = forms.CharField(
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'User ID'}),
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Account Number'}),
         required=True
     )
 
@@ -129,10 +129,6 @@ class GetTicketForm(forms.Form):
     )
 
 class UpdateTicketForm(forms.Form):
-    ticket_id = forms.IntegerField(
-        widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Ticket ID'}),
-        required=True
-    )
     resolved = forms.BooleanField(
         required=False, 
         widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})

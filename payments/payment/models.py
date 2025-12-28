@@ -1,7 +1,6 @@
 from django.db import models
 import uuid
 from datetime import datetime, timedelta
-from dateutil.relativedelta import relativedelta
 
 # Create your models here.
 
@@ -48,4 +47,4 @@ class PaymentRequest(models.Model):
     processed_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
-        return f"Payment {self.reference} - {self.status}"
+        return f"Payment {self.id} - {self.payment_type} - {self.status} - {self.metadata} "

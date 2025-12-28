@@ -1,7 +1,7 @@
 {% extends 'staff_dashboard_layout.html' %}
 
 {% block title %}Loan Details - Arhan Financial{% endblock %}
-{% block page_heading %}Loan #{{ loan.loan_id|default:loan.id }}{% endblock %}
+{% block page_heading %}Loan #{{ loan.loan_id|default:loan.loan_id }}{% endblock %}
 
 {% block content %}
 <div class="dashboard-grid">
@@ -25,13 +25,23 @@
                 
                 <div class="form-group" style="margin-bottom: 20px;">
                     <label class="form-label" style="display: block; margin-bottom: 8px; font-weight: 500;">Loan Reference ID</label>
-                    <input type="text" value="{{ loan.loan_id|default:loan.id }}" readonly 
+                    <input type="text" value="{{ loan.loan_id|default:loan.loan_id }}" readonly 
                            style="width: 100%; padding: 12px; border: 1px solid var(--border-light); border-radius: 10px; background-color: #f9f9f9; color: gray;">
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label class="form-label" style="display: block; margin-bottom: 8px; font-weight: 500;"> Interest Rate (%)</label>
+                    {{ loan.interest_rate }}
                 </div>
 
                 <div class="form-group" style="margin-bottom: 20px;">
-                    <label class="form-label" style="display: block; margin-bottom: 8px; font-weight: 500;">Requested Amount ($)</label>
-                    {{ form.amount }}
+                    <label class="form-label" style="display: block; margin-bottom: 8px; font-weight: 500;">Loan Duration</label>
+                    {{ loan.duration }}
+                </div>
+
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label class="form-label" style="display: block; margin-bottom: 8px; font-weight: 500;">Requested Amount (N)</label>
+                    {{ loan.amount }}
                 </div>
 
                 <div class="form-group" style="margin-bottom: 20px;">

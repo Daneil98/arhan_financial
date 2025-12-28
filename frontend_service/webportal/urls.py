@@ -8,7 +8,10 @@ from django.contrib.auth import views as auth_views
 urlpatterns = [
     path('', views.index, name ='index'),
     path('login/', views.login_view, name='login'),
+    path('staff/login/', views1.staff_login_view, name='staff_login'),
+    path('staff/logged_out/', views1.logout_view, name='staff_logout'),
     path('logged_out/', views.logout_view, name='logout'),
+    
     path('password_change/', auth_views.PasswordChangeView.as_view(), name='password_change'),
     path('password_change/done/', auth_views.PasswordChangeDoneView.as_view(), name='password_change_done'),
     path('password_reset/', auth_views.PasswordResetView.as_view(), name='password_reset'),
@@ -31,12 +34,12 @@ urlpatterns = [
     path('block/card/', views.block_card_view, name='block_card'),
     path('bank/account/', views.account_detail_view, name='bank_account'),
     path('block/account/', views.block_account_view, name='block_account'),
-    
+    path('staff/block/account/', views1.staff_block_account, name='staff_block_account'),
     
     path('loan/apply/', views.loan_apply_view, name='loan_apply'),
     path('loan/detail/', views.loan_detail_view, name='loan_detail'),
     path('loan/search/', views1.loan_search_view, name='loan_search'),
-    path('loans/<str:loan_id>/', views1.loan_detail_view, name='loan_detail_specific'),
+    path('loans/<str:account_number>/', views1.loan_detail_view, name='loan_detail_specific'),
 
     path('ticket/create/', views.create_ticket_view, name='create_ticket'),  
     path('tickets/search/', views1.search_ticket_view, name='search_ticket'),

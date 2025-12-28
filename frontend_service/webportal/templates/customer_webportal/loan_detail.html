@@ -72,7 +72,7 @@
                 
                 <div style="margin-top: 10px;">
                     <p style="font-size: 0.8rem; opacity: 0.8; margin-bottom: 5px;">Total Repayable Amount</p>
-                    <h2 style="font-size: 2.2rem; font-weight: 600;">₦ {{ loan.repayable|intcomma }}</h2>
+                    <h2 style="font-size: 2.2rem; font-weight: 600;">₦ {{ loan.amount_repayable|intcomma }}</h2>
                 </div>
 
                 <div class="flex justify-between items-center mt-4">
@@ -82,7 +82,7 @@
                     </div>
                     <div style="text-align: right;">
                         <p style="font-size: 0.8rem; opacity: 0.7;">Interest Rate</p>
-                        <p style="font-size: 1.1rem; font-weight: 500;">{{ loan.rate }}%</p>
+                        <p style="font-size: 1.1rem; font-weight: 500;">{{ loan.interest_rate }}%</p>
                     </div>
                 </div>
             </div>
@@ -100,12 +100,12 @@
 
             <div class="detail-row">
                 <span class="detail-label">Loan Duration</span>
-                <span class="detail-value">{{ loan.duration }} Months</span>
+                <span class="detail-value">{{ loan.duration }}</span>
             </div>
             
             <div class="detail-row">
                 <span class="detail-label">Interest Rate</span>
-                <span class="detail-value">{{ loan.rate }}% Fixed</span>
+                <span class="detail-value">{{ loan.interest_rate }}% Fixed</span>
             </div>
 
             <div class="detail-row">

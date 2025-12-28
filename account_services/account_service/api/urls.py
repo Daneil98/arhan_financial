@@ -34,11 +34,10 @@ urlpatterns = [
     path('create_ticket/', views.CreateTicket.as_view(), name='create_ticket'),              #Good
     path('fetch_update_ticket/', views.GetAndUpdateTicket.as_view(), name='fetch_update_ticket'),              #Good
     path('get_tickets/', views.GetTickets.as_view(), name='get_tickets'),              #Good
-    path('get_pendingtickets', views.GetPendingTickets.as_view(), name = 'get_pendingtickets'),
+    path('get_pendingtickets/', views.GetPendingTickets.as_view(), name = 'get_pendingtickets'),
     
     path('debit/', views.DebitAccount.as_view(), name='debit'),
     path('credit/', views.CreditAccount.as_view(), name='credit'),
-    path('update_loan/', views.GetAndUpdateLoan.as_view(), name='update_loan'),
     path('debit_bank/', views.DebitBankPool.as_view(), name='debit_bank'),
     path('credit_bank/', views.CreditBankPool.as_view(), name='credit_bank')
 ]

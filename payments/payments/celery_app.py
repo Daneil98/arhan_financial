@@ -47,6 +47,13 @@ app.conf.task_queues = [
     ),
     
     Queue(
+        name='Identity_service.staff.created',  # <--- Name A
+        exchange=identity_exchange,
+        routing_key='Identity_service.staff.created',            # <--- MUST match Producer's key exactly
+        durable=True
+    ),
+    
+    Queue(
         name='Identity_service.user.logged_in',  # <--- Name A
         exchange=identity_exchange,
         routing_key='Identity_service.user.logged_in',            # <--- MUST match Producer's key exactly
@@ -177,6 +184,7 @@ class EventRouter(bootsteps.ConsumerStep):
             # --- ROUTING ---
             event_map = {
                 'Identity_service.customer.created': 'consume.payment.customer.created',
+                'Identity_service.staff.created': 'consume.payment.staff.created',
                 'Identity_service.user.logged_in':   'consume.payment.user.logged_in',
                 'account_service.BankAccount.created': 'consume.payment.BankAccount.created',
                 'account_service.loan.updated': 'consume.payment.loan.updated',

@@ -1,7 +1,5 @@
 from rest_framework import serializers
 from ..models import *
-from datetime import datetime, timedelta
-from dateutil.relativedelta import relativedelta
 
 
 class BankAccountSerializer(serializers.ModelSerializer):
@@ -23,6 +21,7 @@ class LoanSerializer(serializers.ModelSerializer):
         fields = ('amount', 'duration')
         
 class CreateTicketSerializer(serializers.Serializer):
+    subject = serializers.CharField(write_only=True, required=True)
     complaint = serializers.CharField(write_only=True, required=True)
 
 class GetLoanSerializer(serializers.Serializer):
@@ -36,7 +35,7 @@ class UpdateLoanSerializer(serializers.Serializer):
 class GetTicketSerializer(serializers.Serializer):
     ticket_id = serializers.IntegerField(write_only=True, required=True)
     
-class UpdateTicketSerializer(serializers.ModelSerializer):
+class UpdateTicketSerializer(serializers.Serializer):
     ticket_id = serializers.IntegerField(write_only=True, required=True)
     resolved = serializers.BooleanField(required=True)
     remarks = serializers.CharField(required=False)

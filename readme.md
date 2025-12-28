@@ -1,6 +1,6 @@
 # Arhan Financial Platform 🏦
 
-A scalable, event-driven banking backend built using Django and a Microservices Architecture. The system simulates core banking operations including account management, secure funds transfer, card processing, and double-entry bookkeeping, orchestrated via an Nginx API Gateway.
+A scalable, event-driven banking platform built using Django and a Microservices Architecture. The system simulates core banking operations including account management, secure funds transfer (via transfers, card payments or loans), card processing, and double-entry bookkeeping, orchestrated via an Nginx API Gateway.
 
 🚀 Key Architecture
 
@@ -107,3 +107,4 @@ CELERY_TASK_DEFAULT_QUEUE = ''  (e.g account_service_internal)
 
 JWT_SHARED_SECRET = '' (e.g 'your-very-long-and-secure-shared-jwt-secret-key-0987654321')
 
+ENCRYPTION_KEY = '' (Generate a Fernet Encryption key for account_services)

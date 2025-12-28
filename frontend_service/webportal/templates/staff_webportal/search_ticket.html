@@ -17,11 +17,7 @@
 
             <form method="POST">
                 {% csrf_token %}
-                <div style="margin-bottom: 20px; text-align: left;">
-                    <label style="display: block; font-weight: 500; margin-bottom: 8px; color: var(--secondary-text);">Ticket ID</label>
-                    <input type="text" name="ticket_id" placeholder="e.g. TCK-99283" required
-                           style="width: 100%; padding: 12px; border: 1px solid var(--border-light); border-radius: 10px; font-size: 1rem;">
-                </div>
+                {{form}}
                 
                 <button type="submit" class="btn-primary" style="width: 100%; padding: 12px; justify-content: center;">
                     Find Ticket

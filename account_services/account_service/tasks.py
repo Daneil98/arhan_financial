@@ -48,9 +48,6 @@ def consume_staff_created(self, data):   #GOOD
     user_id_value = data.get("id")
     email_value = data.get("email")
     username = data.get("username")
-    first_name = data.get("first_name")
-    last_name = data.get("last_name")
-    role = data.get("role")
     
     user, created = User.objects.get_or_create(
         id=user_id_value,
@@ -58,8 +55,6 @@ def consume_staff_created(self, data):   #GOOD
             'username': username, # or whatever unique field you use
             'email': email_value,
             'is_active': True,
-            'first_name': first_name,
-            'last_name': last_name,
         }
     )
     Account.objects.get_or_create(
@@ -77,7 +72,7 @@ def consume_user_logged_in(self, data):
             print(f"customer {user_id_value} has logged in.")
     except ObjectDoesNotExist:
         print(f"No account found for user {user_id_value}")
-         
+        
      
 # PRODUCER TASKS
 

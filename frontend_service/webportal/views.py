@@ -114,7 +114,7 @@ def logout_view(request):
 
     request.session.flush()
     messages.info(request, "Logged out.")
-    return redirect('login') # Changed from 'index' to 'login'
+    return redirect('login')
 
 def customer_register_view(request):
     
@@ -130,7 +130,6 @@ def customer_register_view(request):
                 "last_name": str(form.cleaned_data["last_name"]),
                 "phone": str(form.cleaned_data["phone"]),
                 "sex": str(form.cleaned_data["sex"]),
-                # Add other fields required by your customer_register serializer
             }
             
             client = IdentityClient()
@@ -205,7 +204,7 @@ def dashboard_view(request):
         if payment_response.status_code == 200:
             # Handle paginated or flat list results
             p_data = payment_response.json()
-            raw_list = p_data.get('results', p_data) if isinstance(p_data, dict) else p_data
+            raw_list = p_data.get('data', p_data) if isinstance(p_data, dict) else p_data
             if not isinstance(raw_list, list): raw_list = []
 
             for t in raw_list:
@@ -551,10 +550,10 @@ def card_payment_view(request):
     if request.method == "POST":
         if form.is_valid():
             data = {
-                "payee_account_id": form.cleaned_data.get("payee_account_id"),
-                "amount": form.cleaned_data.get("amount"),
-                "card_number": form.cleaned_data.get("card_number"),
-                "cvv": form.cleaned_data.get("cvv"),
+                "payee_account_id": str(form.cleaned_data.get("payee_account_id")),
+                "amount": float(form.cleaned_data.get("amount")),
+                "card_number": str(form.cleaned_data.get("card_number")),
+                "cvv": str(form.cleaned_data.get("cvv")),
                 "pin": form.cleaned_data.get("pin"),
             }
             

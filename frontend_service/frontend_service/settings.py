@@ -37,10 +37,7 @@ SECRET_KEY = 'django-insecure-p=npo0!=-6!513!grw=pq(4-hm578g#$v2inx69&$byi1g9&^&
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 ALLOWED_HOSTS = ['*', 'identity', 'account', 'payments', 'ledger', '127.0.0.1']
-LOGIN_REDIRECT_URL = 'dashboard'
-LOGOUT_REDIRECT_URL = 'index'
-LOGIN_URL = 'login'
-LOGOUT_URL = 'logout'
+
 
 JWT_SHARED_SECRET = "your-very-long-and-secure-shared-jwt-secret-key-1234567890"
 
@@ -51,7 +48,6 @@ SIMPLE_JWT = {
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
     'TOKEN_USER_CLASS': 'account_service.models.User', 
-    'TOKEN_CLAIMS_SERIALIZER': 'account_service.serializers.combine_custom_claims',
 }
 
 #CELERY_RESULT_BACKEND = os.getenv('REDIS_URL', 'redis://redis:6379/0')

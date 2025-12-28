@@ -39,12 +39,12 @@ JWT_SHARED_SECRET = "your-very-long-and-secure-shared-jwt-secret-key-1234567890"
 
 SIMPLE_JWT = {
     'SIGNING_KEY': JWT_SHARED_SECRET,
+    'VERIFYING_KEY': JWT_SHARED_SECRET,
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
     'REFRESH_TOKEN_LIFEIME': timedelta(days=15),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
     'TOKEN_USER_CLASS': 'ledger_service.models.User', 
-    'TOKEN_CLAIMS_SERIALIZER': 'ledger_service.serializers.combine_custom_claims',
 }
 
 #CELERY_RESULT_BACKEND = os.getenv('REDIS_URL', 'redis://redis:6379/0')
@@ -170,7 +170,6 @@ USE_TZ = True
 
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
-    #'allauth.account.auth_backends.AuthenticationBackend',
 ] 
 
 # Static files (CSS, JavaScript, Images)
