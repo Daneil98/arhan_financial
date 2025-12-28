@@ -12,9 +12,7 @@ services:
 
   # --- 1. Identity Service (arhan_financial) ---
   identity:
-    build:
-      context: ./arhan_financial
-      dockerfile: Dockerfile   # The exact file name
+    build: ./arhan_financial
     command: python manage.py runserver 0.0.0.0:8001
     volumes:
       - ./arhan_financial:/app
@@ -42,9 +40,7 @@ services:
 
   # --- 2. Account Service (account_services) ---
   account:
-    build: 
-      context: ./account_services
-      dockerfile: Dockerfile   # The exact file name
+    build: ./account_services
     command: python manage.py runserver 0.0.0.0:8002
     volumes:
       - ./account_services:/app
@@ -74,9 +70,7 @@ services:
 
   # --- 3. Payments Service (payments) ---
   payments:
-    build:
-      context: ./payments
-      dockerfile: Dockerfile   # The exact file name
+    build: ./payments
     command: python manage.py runserver 0.0.0.0:8004
     volumes:
       - ./payments:/app
@@ -107,9 +101,7 @@ services:
 
   # --- 4. Ledger Service (ledger_service) ---
   ledger:
-    build: 
-      context: ./ledger_service
-      dockerfile: Dockerfile   # The exact file name
+    build: ./ledger_service
     command: python manage.py runserver 0.0.0.0:8003
     volumes:
       - ./ledger_service:/app
@@ -138,9 +130,7 @@ services:
 
   # --- 5. Frontend Service (frontend_service) ---
   frontend:
-    build: 
-      context: ./frontend_service
-      dockerfile: Dockerfile   # The exact file name
+    build: ./frontend_service
     command: python manage.py runserver 0.0.0.0:8005
     volumes:
       - ./frontend_service:/app

@@ -1,16 +1,17 @@
-# account_services/Dockerfile
+# payments/Dockerfile
 FROM python:3.9-slim
 
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
 WORKDIR /app
+
 # ✅ Tell Docker the file is inside the subfolder
-COPY account_services/Requirement.txt /app/
+COPY Requirement.txt /app/
 RUN pip install --no-cache-dir -r Requirement.txt
 
 COPY . /app/
 
-EXPOSE 8002
+EXPOSE 8005
 
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8002"]
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8005"]

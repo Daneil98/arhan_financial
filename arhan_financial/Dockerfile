@@ -1,4 +1,4 @@
-# payments/Dockerfile
+# arhan_financial/Dockerfile
 FROM python:3.9-slim
 
 ENV PYTHONDONTWRITEBYTECODE 1
@@ -7,11 +7,11 @@ ENV PYTHONUNBUFFERED 1
 WORKDIR /app
 
 # ✅ Tell Docker the file is inside the subfolder
-COPY frontend_service/Requirement.txt /app/
+COPY Requirement.txt /app/
 RUN pip install --no-cache-dir -r Requirement.txt
 
 COPY . /app/
 
-EXPOSE 8005
+EXPOSE 8001
 
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8005"]
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8001"]

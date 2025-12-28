@@ -16,11 +16,17 @@ import os, environ
 env = environ.Env()
 environ.Env.read_env()
 from datetime import timedelta
-
+"""
 IDENTITY_SERVICE_URL = "http://127.0.0.1:8001" 
 ACCOUNT_SERVICE_URL = "http://127.0.0.1:8002" 
 PAYMENT_SERVICE_URL = "http://127.0.0.1:8004" 
 LEDGER_SERVICE_URL = "http://127.0.0.1:8003" 
+"""
+
+IDENTITY_SERVICE_URL= 'http://identity:8001'
+ACCOUNT_SERVICE_URL= 'http://account:8002'
+PAYMENT_SERVICE_URL= 'http://payments:8004'
+LEDGER_SERVICE_URL= 'http://ledger:8003'
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

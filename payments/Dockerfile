@@ -7,7 +7,7 @@ ENV PYTHONUNBUFFERED 1
 WORKDIR /app
 
 # ✅ Tell Docker the file is inside the subfolder
-COPY payments/Requirement.txt /app/
+COPY Requirement.txt /app/
 RUN pip install --no-cache-dir -r Requirement.txt
 
 COPY . /app/
