@@ -14,6 +14,11 @@ TEMPLATE_DIR = os.path.join(BASE_DIR, "templates")
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+# This looks for a .env file in your BASE_DIR (the folder with manage.py)
+from dotenv import load_dotenv
+env_path = BASE_DIR / '.env'
+load_dotenv(dotenv_path=env_path)
+
 # ==========================================
 # 1. SECURITY & ENV VARS
 # ==========================================
