@@ -28,8 +28,6 @@ services:
   # --- 1. Identity Service (arhan_financial) ---
   identity:
     build: ./arhan_financial
-    networks:
-      - arhan_network
     env_file:
       - ./.env
     command: python manage.py runserver 0.0.0.0:8001
