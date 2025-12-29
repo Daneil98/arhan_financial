@@ -3,19 +3,16 @@ FROM python:3.9-slim
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
-WORKDIR /app
+WORKDIR /account_service
 
-# 1. Copy requirements from the CURRENT folder (payments/)
-# Since we will set the context to 'payments', we don't need the folder prefix.
-COPY Requirement.txt /app/
 
-RUN pip install --no-cache-dir -r Requirement.txt
+COPY requirements.txt /account_service/
 
-# 2. Copy the rest of the payments folder contents
-COPY . /app/
+RUN pip install --no-cache-dir -r requirements.txt
 
-# 3. Make sure the start script is executable
-RUN chmod +x /app/start.sh
+COPY . /account_service/
 
-# 4. Run your start script
+# Make script executable
+RUN chmod +x /account_service/start.sh
+
 CMD ["./start.sh"]

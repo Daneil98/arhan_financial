@@ -3,19 +3,18 @@ FROM python:3.9-slim
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
-WORKDIR /app
+WORKDIR /ledger
 
-# 1. Copy requirements from the CURRENT folder (payments/)
-# Since we will set the context to 'payments', we don't need the folder prefix.
-COPY Requirement.txt /app/
+# ✅ CORRECT: Just copy the file name. 
+# Since we are inside 'account_services/', the file is right here.
+COPY requirements.txt /ledger/
 
-RUN pip install --no-cache-dir -r Requirement.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
-# 2. Copy the rest of the payments folder contents
-COPY . /app/
+# ✅ CORRECT: Copy everything from the current folder (account_services)
+COPY . /ledger/
 
-# 3. Make sure the start script is executable
-RUN chmod +x /app/start.sh
+# Make script executable
+RUN chmod +x /ledger/start.sh
 
-# 4. Run your start script
 CMD ["./start.sh"]
