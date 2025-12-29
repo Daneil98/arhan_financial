@@ -8,8 +8,14 @@ pycache/
 env/
 venv/
 .env
-db.sqlite3
+payment.sqlite3
+Legder.sqlite3
+frontend_service.sqlite3
+Identity_service.sqlite3
+account_service.sqlite3
 *.log
+
+Login_Details.txt
 
 Docker
 

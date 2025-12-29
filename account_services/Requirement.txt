@@ -8,4 +8,6 @@ djangorestframework==3.14.0
 djangorestframework-simplejwt==5.2.2
 kombu==5.5.1
 cryptography
-
+gunicorn
+psycopg2-binary
+dj-database-url

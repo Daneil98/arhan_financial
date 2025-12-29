@@ -87,24 +87,16 @@ Start the celery worker. For example (Replace payment with the microservice app_
 
 
 ## Environment Variables (For Each Microservice settings.py)
-CELERY_ACCEPT_CONTENT = ['json']
+DEBUG=True (Set To False for Production)
+SECRET_KEY=change_this_to_a_unique_random_string_per_service
+ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
 
-CELERY_TASK_SERIALIZER = 'json'
+# Database (Auto-overwritten by Render, used for Local Docker)
+DATABASE_URL=sqlite:///db.sqlite3 
 
-CELERY_RESULT_SERIALIZER = 'json'
+# Async Messaging (RabbitMQ)
+CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672/
 
-CELERY_TIMEZONE = 'UTC'
-
-CELERY_ACKS_LATE = True   # ensures tasks are not lost if worker crashes
-
-CELERY_TASK_REJECT_ON_WORKER_LOST = True
-
-CELERY_TASK_TRACK_STARTED = True
-
-CELERY_BROKER_URL = ''  (e.g amqp://guest:guest@localhost:5672/)
-
-CELERY_TASK_DEFAULT_QUEUE = ''  (e.g account_service_internal)
-
-JWT_SHARED_SECRET = '' (e.g 'your-very-long-and-secure-shared-jwt-secret-key-0987654321')
-
-ENCRYPTION_KEY = '' (Generate a Fernet Encryption key for account_services)
+# Security (MUST BE IDENTICAL ACROSS ALL SERVICES)
+# Generate via: python -c "import secrets; print(secrets.token_hex(32))"
+JWT_SHARED_SECRET=your-secure-shared-key-must-match-everywhere

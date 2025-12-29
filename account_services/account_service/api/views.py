@@ -200,7 +200,7 @@ class GetAndUpdateLoan(APIView):    #CHECH THISS
             
             loan = get_object_or_404(Loan.objects.select_for_update(), account_number=account_number)
             
-            if loan.loan_status in ['Rejected', 'Approved']:
+            if loan.loan_status.lower() in ['rejected', 'approved']:
                 return Response({'message': 'Loan has been handled'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
             
             loan.loan_status = loan_status
@@ -433,7 +433,7 @@ class BlockCard(APIView):
         user_id = request.user.id
         if serializer.is_valid():
             input_pin = serializer.validated_data['pin']
-            card = get_object_or_404(Card, user_id=user_id)
+            card = Card.objects.filter(user_id=user_id).select_for_update().first()
             
             if not check_password(input_pin, card.PIN):
                 return Response({'message': 'Incorrect Pin'}, status=status.HTTP_400_BAD_REQUEST)
@@ -576,7 +576,7 @@ class GetAndUpdateTicket(APIView):    #CHECH THISS
             id = serializer.validated_data['ticket_id']
             resolved = serializer.validated_data['resolved']
             remarks = serializer.validated_data['remarks']
-            ticket = get_object_or_404(IT_Tickets, id=id)
+            ticket = IT_Tickets.objects.filter(id=id).select_for_update().first()
             
             if ticket.resolved == True:
                 return Response({'message': 'Ticket has already been'}, 

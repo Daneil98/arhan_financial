@@ -1,0 +1,196 @@
+databases:
+  - name: arhan_shared_db
+    databaseName: arhan_db
+    user: arhan_user
+    plan: free # or starter
+
+services:
+  # ------------------------------------
+  # 1. Identity Service
+  # ------------------------------------
+  - type: web
+    name: identity-service
+    runtime: docker
+    rootDir: ./arhan_financial
+    dockerfilePath: ./arhan_financial/Dockerfile
+    # Override CMD to use Gunicorn for Production
+    dockerCommand: gunicorn arhan_financial.wsgi:application --bind 0.0.0.0:$PORT
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: arhan_shared_db
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        sync: false # You will paste CloudAMQP URL in dashboard
+      - key: JWT_SHARED_SECRET_KEY
+        sync: false # You will paste your shared secret
+    plan: free
+
+  - type: worker
+    name: identity-worker
+    runtime: docker
+    rootDir: ./arhan_financial
+    dockerfilePath: ./arhan_financial/Dockerfile
+    dockerCommand: celery -A arhan_financial worker -l info
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: arhan_shared_db
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        sync: false
+      - key: JWT_SHARED_SECRET_KEY
+        sync: false
+
+  # ------------------------------------
+  # 2. Account Service
+  # ------------------------------------
+  - type: web
+    name: account-service
+    runtime: docker
+    rootDir: ./account_services
+    dockerfilePath: ./account_services/Dockerfile
+    dockerCommand: gunicorn account_service.wsgi:application --bind 0.0.0.0:$PORT
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: arhan_shared_db
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        sync: false
+      - key: JWT_SHARED_SECRET_KEY
+        sync: false
+      - key: IDENTITY_SERVICE_URL
+        fromService:
+          type: web
+          name: identity-service
+          property: url
+
+  - type: worker
+    name: account-worker
+    runtime: docker
+    rootDir: ./account_services
+    dockerfilePath: ./account_services/Dockerfile
+    dockerCommand: celery -A account_services worker -l info
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: arhan_shared_db
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        sync: false
+      - key: JWT_SHARED_SECRET_KEY
+        sync: false
+
+  # ------------------------------------
+  # 3. Payments Service
+  # ------------------------------------
+  - type: web
+    name: payments-service
+    runtime: docker
+    rootDir: ./payments
+    dockerfilePath: ./payments/Dockerfile
+    dockerCommand: gunicorn payment.wsgi:application --bind 0.0.0.0:$PORT
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: arhan_shared_db
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        sync: false
+      - key: JWT_SHARED_SECRET_KEY
+        sync: false
+      - key: ACCOUNT_SERVICE_BASE_URL
+        fromService:
+          type: web
+          name: account-service
+          property: url
+
+  - type: worker
+    name: payments-worker
+    runtime: docker
+    rootDir: ./payments
+    dockerfilePath: ./payments/Dockerfile
+    dockerCommand: celery -A payments worker -Q payment.internal,celery -l info
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: arhan_shared_db
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        sync: false
+      - key: ACCOUNT_SERVICE_BASE_URL
+        fromService:
+          type: web
+          name: account-service
+          property: url
+      - key: JWT_SHARED_SECRET_KEY
+        sync: false
+
+  # ------------------------------------
+  # 4. Ledger Service
+  # ------------------------------------
+  - type: web
+    name: ledger-service
+    runtime: docker
+    rootDir: ./ledger_service
+    dockerfilePath: ./ledger_service/Dockerfile
+    dockerCommand: gunicorn ledger_service.wsgi:application --bind 0.0.0.0:$PORT
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: arhan_shared_db
+          property: connectionString
+      - key: JWT_SHARED_SECRET_KEY
+        sync: false
+
+  - type: worker
+    name: ledger-worker
+    runtime: docker
+    rootDir: ./ledger_service
+    dockerfilePath: ./ledger_service/Dockerfile
+    dockerCommand: celery -A ledger_service worker -l info
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: arhan_shared_db
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        sync: false
+      - key: JWT_SHARED_SECRET_KEY
+        sync: false
+
+  # ------------------------------------
+  # 5. Frontend Service (Public Facing)
+  # ------------------------------------
+  - type: web
+    name: frontend-service
+    runtime: docker
+    rootDir: ./frontend_service
+    dockerfilePath: ./frontend_service/Dockerfile
+    dockerCommand: gunicorn web_portal.wsgi:application --bind 0.0.0.0:$PORT
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: IDENTITY_SERVICE_URL
+        fromService:
+          type: web
+          name: identity-service
+          property: url
+      - key: ACCOUNT_SERVICE_URL
+        fromService:
+          type: web
+          name: account-service
+          property: url
+      - key: PAYMENT_SERVICE_URL
+        fromService:
+          type: web
+          name: payments-service
+          property: url
+      - key: LEDGER_SERVICE_URL
+        fromService:
+          type: web
+          name: ledger-service
+          property: url
