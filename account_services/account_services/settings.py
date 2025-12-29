@@ -26,7 +26,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-fallback-key')
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 # 🟢 CRITICAL FOR CARD ENCRYPTION
-ENCRYPTION_KEY = os.environ.get('ENCRYPTION_KEY')
+ENCRYPTION_KEY = os.environ.get('ENCRYPTION_KEY', 'tjQfTI3CV0cGn1WRyJtijKujr9KnyYTtGbmcyIMQ7Gc=')
 if not ENCRYPTION_KEY and not DEBUG:
     print("WARNING: ENCRYPTION_KEY is missing. Card operations will fail.")
 
