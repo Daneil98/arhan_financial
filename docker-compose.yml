@@ -149,7 +149,7 @@ services:
     build: ./frontend_service
     env_file:
       - ./.env
-    command: sh -c "python manage.py collectstatic --noinput && python manage.py runserver 0.0.0.0:8000"
+    command: sh -c "python manage.py collectstatic --noinput && python manage.py runserver 0.0.0.0:8005"
     volumes:
       - ./frontend_service:/app
     ports:
