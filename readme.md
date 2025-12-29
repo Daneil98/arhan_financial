@@ -91,12 +91,12 @@ DEBUG=True (Set To False for Production)
 SECRET_KEY=change_this_to_a_unique_random_string_per_service
 ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
 
-# Database (Auto-overwritten by Render, used for Local Docker)
+### Database (Auto-overwritten by Render, used for Local Docker)
 DATABASE_URL=sqlite:///db.sqlite3 
 
-# Async Messaging (RabbitMQ)
+### Async Messaging (RabbitMQ)
 CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672/
 
-# Security (MUST BE IDENTICAL ACROSS ALL SERVICES)
-# Generate via: python -c "import secrets; print(secrets.token_hex(32))"
+### Security (MUST BE IDENTICAL ACROSS ALL SERVICES)
+Generate via: python -c "import secrets; print(secrets.token_hex(32))"
 JWT_SHARED_SECRET=your-secure-shared-key-must-match-everywhere
