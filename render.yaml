@@ -42,7 +42,7 @@ services:
     runtime: docker
     rootDir: account_services
     
-    dockerCommand: gunicorn account_service.wsgi:application --bind 0.0.0.0:$PORT
+    dockerCommand: gunicorn account_services.wsgi:application --bind 0.0.0.0:$PORT
     envVars:
       - key: DATABASE_URL
         sync: false
@@ -78,7 +78,7 @@ services:
     runtime: docker
     rootDir: payments
     
-    dockerCommand: gunicorn payment.wsgi:application --bind 0.0.0.0:$PORT
+    dockerCommand: gunicorn payments.wsgi:application --bind 0.0.0.0:$PORT
     envVars:
       - key: DATABASE_URL
         sync: false
@@ -148,7 +148,7 @@ services:
     runtime: docker
     rootDir: frontend_service
     
-    dockerCommand: gunicorn web_portal.wsgi:application --bind 0.0.0.0:$PORT
+    dockerCommand: gunicorn frontend_service.wsgi:application --bind 0.0.0.0:$PORT
     envVars:
       - key: DATABASE_URL
         sync: false
