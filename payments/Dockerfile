@@ -1,5 +1,3 @@
-# payments/Dockerfile
-# Fix for Render Build System
 FROM python:3.9-slim
 
 ENV PYTHONDONTWRITEBYTECODE 1
@@ -7,14 +5,17 @@ ENV PYTHONUNBUFFERED 1
 
 WORKDIR /app
 
+# 1. Copy requirements from the CURRENT folder (payments/)
+# Since we will set the context to 'payments', we don't need the folder prefix.
+COPY requirements.txt /app/
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 2. Copy the rest of the payments folder contents
+COPY . /app/
+
+# 3. Make sure the start script is executable
 RUN chmod +x /app/start.sh
-# ✅ Tell Docker the file is inside the subfolder
-COPY payments/requirements.txt /payment/
-RUN pip install --no-cache-dir -r /payment/requirements.txt
 
-# Copy the payment folder into /payment inside container
-COPY payments/ /payment/
-
-EXPOSE 8004
-
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8004"]
+# 4. Run your start script
+CMD ["./start.sh"]
