@@ -6,9 +6,9 @@ ENV PYTHONUNBUFFERED 1
 WORKDIR /account_service
 
 
-COPY requirements.txt /account_service/
+COPY Requirment.txt /account_service/
 
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r Requirment.txt
 
 COPY . /account_service/
 

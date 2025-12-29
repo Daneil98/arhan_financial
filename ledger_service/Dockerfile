@@ -7,9 +7,9 @@ WORKDIR /ledger
 
 # ✅ CORRECT: Just copy the file name. 
 # Since we are inside 'account_services/', the file is right here.
-COPY requirements.txt /ledger/
+COPY Requirment.txt /ledger/
 
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r Requirment.txt
 
 # ✅ CORRECT: Copy everything from the current folder (account_services)
 COPY . /ledger/
