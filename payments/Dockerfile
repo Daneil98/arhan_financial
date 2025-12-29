@@ -6,6 +6,7 @@ ENV PYTHONUNBUFFERED 1
 
 WORKDIR /app
 
+RUN chmod +x /app/start.sh
 # ✅ Tell Docker the file is inside the subfolder
 COPY Requirement.txt /app/
 RUN pip install --no-cache-dir -r Requirement.txt
