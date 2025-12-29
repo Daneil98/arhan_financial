@@ -30,10 +30,10 @@ ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "*").split(",")
 # ==========================================
 # 2. MICROSERVICES URLs
 # ==========================================
-IDENTITY_SERVICE_URL = os.environ.get('IDENTITY_SERVICE_URL', 'http://127.0.0.1:8001')
-ACCOUNT_SERVICE_URL = os.environ.get('ACCOUNT_SERVICE_URL', 'http://127.0.0.1:8002')
-PAYMENT_SERVICE_URL = os.environ.get('PAYMENT_SERVICE_URL', 'http://127.0.0.1:8004')
-LEDGER_SERVICE_URL = os.environ.get('LEDGER_SERVICE_URL', 'http://127.0.0.1:8003')
+IDENTITY_SERVICE_URL = os.environ.get('IDENTITY_SERVICE_URL', 'http://identity:8001')
+ACCOUNT_SERVICE_URL = os.environ.get('ACCOUNT_SERVICE_URL', 'http://account:8002')
+PAYMENT_SERVICE_URL = os.environ.get('PAYMENT_SERVICE_URL', 'http://payments:8004')
+LEDGER_SERVICE_URL = os.environ.get('LEDGER_SERVICE_URL', 'http://ledger:8003')
 
 
 # ==========================================
