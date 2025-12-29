@@ -7,9 +7,9 @@ WORKDIR /app
 
 # 1. Copy requirements from the CURRENT folder (payments/)
 # Since we will set the context to 'payments', we don't need the folder prefix.
-COPY requirements.txt /app/
+COPY Requirement.txt /app/
 
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r Requirement.txt
 
 # 2. Copy the rest of the payments folder contents
 COPY . /app/
