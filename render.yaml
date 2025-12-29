@@ -6,7 +6,7 @@ services:
     name: identity-service
     runtime: docker
     rootDir: ./arhan_financial
-    dockerfilePath: ./arhan_financial/Dockerfile
+
     # Override CMD to use Gunicorn for Production
     dockerCommand: gunicorn arhan_financial.wsgi:application --bind 0.0.0.0:$PORT
     envVars:
@@ -24,7 +24,7 @@ services:
     name: identity-worker
     runtime: docker
     rootDir: ./arhan_financial
-    dockerfilePath: ./arhan_financial/Dockerfile
+    
     dockerCommand: celery -A arhan_financial worker -l info
     envVars:
       - key: DATABASE_URL
@@ -41,7 +41,7 @@ services:
     name: account-service
     runtime: docker
     rootDir: ./account_services
-    dockerfilePath: ./account_services/Dockerfile
+    
     dockerCommand: gunicorn account_service.wsgi:application --bind 0.0.0.0:$PORT
     envVars:
       - key: DATABASE_URL
@@ -60,7 +60,7 @@ services:
     name: account-worker
     runtime: docker
     rootDir: ./account_services
-    dockerfilePath: ./account_services/Dockerfile
+    
     dockerCommand: celery -A account_services worker -l info
     envVars:
       - key: DATABASE_URL
@@ -77,7 +77,7 @@ services:
     name: payments-service
     runtime: docker
     rootDir: ./payments
-    dockerfilePath: ./payments/Dockerfile
+    
     dockerCommand: gunicorn payment.wsgi:application --bind 0.0.0.0:$PORT
     envVars:
       - key: DATABASE_URL
@@ -96,7 +96,7 @@ services:
     name: payments-worker
     runtime: docker
     rootDir: ./payments
-    dockerfilePath: ./payments/Dockerfile
+    
     dockerCommand: celery -A payments worker -Q payment.internal,celery -l info
     envVars:
       - key: DATABASE_URL
@@ -118,7 +118,7 @@ services:
     name: ledger-service
     runtime: docker
     rootDir: ./ledger_service
-    dockerfilePath: ./ledger_service/Dockerfile
+    
     dockerCommand: gunicorn ledger_service.wsgi:application --bind 0.0.0.0:$PORT
     envVars:
       - key: DATABASE_URL
@@ -130,7 +130,7 @@ services:
     name: ledger-worker
     runtime: docker
     rootDir: ./ledger_service
-    dockerfilePath: ./ledger_service/Dockerfile
+    
     dockerCommand: celery -A ledger_service worker -l info
     envVars:
       - key: DATABASE_URL
@@ -147,7 +147,7 @@ services:
     name: frontend-service
     runtime: docker
     rootDir: ./frontend_service
-    dockerfilePath: ./frontend_service/Dockerfile
+    
     dockerCommand: gunicorn web_portal.wsgi:application --bind 0.0.0.0:$PORT
     envVars:
       - key: DATABASE_URL
