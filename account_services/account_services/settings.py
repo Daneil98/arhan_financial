@@ -30,16 +30,7 @@ ENCRYPTION_KEY = os.environ.get('ENCRYPTION_KEY', 'tjQfTI3CV0cGn1WRyJtijKujr9Kny
 if not ENCRYPTION_KEY and not DEBUG:
     print("WARNING: ENCRYPTION_KEY is missing. Card operations will fail.")
 
-ALLOWED_HOSTS = []
-# Add Render hostname automatically
-RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
-if RENDER_EXTERNAL_HOSTNAME:
-    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
-
-# Add hosts from .env (comma separated)
-env_hosts = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1')
-ALLOWED_HOSTS.extend(env_hosts.split(','))
-
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "*").split(",")
 
 # ==========================================
 # 2. AUTHENTICATION & JWT
@@ -179,3 +170,14 @@ USE_I18N = True
 USE_TZ = True
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+CSRF_TRUSTED_ORIGINS = [
+    '[http://94.130.183.1](http://94.130.183.1)',
+    'http://localhost',
+    '[http://127.0.0.1](http://127.0.0.1)'
+]
+
+# 2. Since you aren't using HTTPS yet, ensure these are False
+CSRF_COOKIE_SECURE = False
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_HTTPONLY = False
