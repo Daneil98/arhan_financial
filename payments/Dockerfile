@@ -9,10 +9,11 @@ WORKDIR /app
 
 RUN chmod +x /app/start.sh
 # ✅ Tell Docker the file is inside the subfolder
-COPY Requirement.txt /app/
-RUN pip install --no-cache-dir -r Requirement.txt
+COPY payments/requirements.txt /payment/
+RUN pip install --no-cache-dir -r /payment/requirements.txt
 
-COPY . /app/
+# Copy the payment folder into /payment inside container
+COPY payments/ /payment/
 
 EXPOSE 8004
 

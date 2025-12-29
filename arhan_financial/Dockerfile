@@ -9,10 +9,11 @@ WORKDIR /app
 
 RUN chmod +x /app/start.sh
 # ✅ Tell Docker the file is inside the subfolder
-COPY Requirement.txt /app/
-RUN pip install --no-cache-dir -r Requirement.txt
+COPY arhan_financial/Requirement.txt /Identity_service/
+RUN pip install --no-cache-dir -r /Identity_service/Requirement.txt
 
-COPY . /app/
+
+COPY . arhan_financial/ /Identity_service/
 
 EXPOSE 8001
 

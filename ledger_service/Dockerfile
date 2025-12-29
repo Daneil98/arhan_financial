@@ -9,10 +9,10 @@ WORKDIR /app
 
 RUN chmod +x /app/start.sh
 # ✅ Tell Docker the file is inside the subfolder
-COPY Requirement.txt /app/
-RUN pip install --no-cache-dir -r Requirement.txt
+COPY ledger_service/Requirement.txt /ledger/
+RUN pip install --no-cache-dir -r /ledger/Requirement.txt
 
-COPY . /app/
+COPY . ledger_service/ /ledger/
 
 EXPOSE 8003
 
