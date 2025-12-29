@@ -10,3 +10,4 @@ kombu==5.5.1
 gunicorn
 psycopg2-binary
 dj-database-url
+whitenoise
