@@ -296,21 +296,21 @@ def process_internal_transfer(self, data):
     
     
     # Update only the Transaction Status locally
-    payment = PaymentRequest.objects.filter(
-        id = payment_id
-    ).first()
-    
-    if payment:
-        payment.status = "COMPLETED"
-        payment.metadata = {'TYPE': 'USER INTERNAL TRANSFER'}
-        payment.processed_at = datetime.now()
-        payment.save()
+    try:
+        payment = PaymentRequest.objects.filter(
+            id = payment_id
+        ).first()
         
-    else:
+    except:
         # If not found, Retry in 1 second.
         # This handles the race condition perfectly.
         print(f"[⏳] Payment record not found yet. Retrying...")
-        raise self.retry(countdown=1, max_retries=5)
+        raise self.retry(countdown=1, max_retries=6)
+    
+    payment.status = "COMPLETED"
+    payment.metadata = {'TYPE': 'USER INTERNAL TRANSFER'}
+    payment.processed_at = datetime.now()
+    payment.save()
     
     # Publish Event
     event_data = {
@@ -387,20 +387,22 @@ def initiate_card_payment(self, data):
         return
 
     # Update only the Transaction Status locally
-    payment = PaymentRequest.objects.filter(
-        id = payment_id
-    ).first()
-    if payment:
-        payment.status = "COMPLETED"
-        payment.payer_account_id = payer_id # Ensure this is set
-        payment.metadata = {'TYPE': 'USER CARD PAYMENT'}
-        payment.processed_at = datetime.now()    
-        payment.save()
-    else:
+    try:
+        payment = PaymentRequest.objects.filter(
+            id = payment_id
+        ).first()
+
+    except:
         # If not found, Retry in 1 second.
         # This handles the race condition perfectly.
         print(f"[⏳] Payment record not found yet. Retrying...")
-        raise self.retry(countdown=1, max_retries=5)
+        raise self.retry(countdown=1, max_retries=6)
+    
+    payment.status = "COMPLETED"
+    payment.payer_account_id = payer_id # Ensure this is set
+    payment.metadata = {'TYPE': 'USER CARD PAYMENT'}
+    payment.processed_at = datetime.now()    
+    payment.save()
     
     # Publish Event
     event_data = {
