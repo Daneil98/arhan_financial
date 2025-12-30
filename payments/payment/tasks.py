@@ -307,9 +307,11 @@ def process_internal_transfer(self, data):
         payment.save()
         
     else:
-        print("[⚠️] Could not find pending payment record to update")   
-        
-
+        # If not found, Retry in 1 second.
+        # This handles the race condition perfectly.
+        print(f"[⏳] Payment record not found yet. Retrying...")
+        raise self.retry(countdown=1, max_retries=5)
+    
     # Publish Event
     event_data = {
         "event": "payment.payment.completed",
@@ -395,8 +397,11 @@ def initiate_card_payment(self, data):
         payment.processed_at = datetime.now()    
         payment.save()
     else:
-        print("[⚠️] Could not find pending payment record to update")
-
+        # If not found, Retry in 1 second.
+        # This handles the race condition perfectly.
+        print(f"[⏳] Payment record not found yet. Retrying...")
+        raise self.retry(countdown=1, max_retries=5)
+    
     # Publish Event
     event_data = {
         "event": "payment.card.charge",
