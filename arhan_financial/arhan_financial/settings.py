@@ -4,6 +4,7 @@ Updated for Production (Render) and Local Docker usage.
 """
 
 import os
+from dotenv import load_dotenv
 import dj_database_url
 from datetime import timedelta
 from pathlib import Path
@@ -15,7 +16,7 @@ STATIC_DIR = os.path.join(BASE_DIR, "static")
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # This looks for a .env file in your BASE_DIR (the folder with manage.py)
-from dotenv import load_dotenv
+
 env_path = BASE_DIR / '.env'
 load_dotenv(dotenv_path=env_path)
 
@@ -189,8 +190,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CSRF_TRUSTED_ORIGINS = [
     '[http://94.130.183.1](http://94.130.183.1)',
     'http://localhost',
-    
+    'http://identity',
+    'http://gateway',
+    'http://frontend',
 ]
+
 
 # 2. Since you aren't using HTTPS yet, ensure these are False
 CSRF_COOKIE_SECURE = False

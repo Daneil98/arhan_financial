@@ -4,6 +4,7 @@ Updated for Production (Render) and Local Docker usage.
 """
 
 import os
+from dotenv import load_dotenv
 import dj_database_url
 from datetime import timedelta
 from pathlib import Path
@@ -16,7 +17,7 @@ STATIC_DIR = os.path.join(BASE_DIR, "static")
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # This looks for a .env file in your BASE_DIR (the folder with manage.py)
-from dotenv import load_dotenv
+
 env_path = BASE_DIR / '.env'
 load_dotenv(dotenv_path=env_path)
 
@@ -30,7 +31,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-fallback-key')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-# 🟢 CRITICAL FOR CARD ENCRYPTION
+#  CRITICAL FOR CARD ENCRYPTION
 ENCRYPTION_KEY = os.environ.get('ENCRYPTION_KEY', 'tjQfTI3CV0cGn1WRyJtijKujr9KnyYTtGbmcyIMQ7Gc=')
 if not ENCRYPTION_KEY and not DEBUG:
     print("WARNING: ENCRYPTION_KEY is missing. Card operations will fail.")
