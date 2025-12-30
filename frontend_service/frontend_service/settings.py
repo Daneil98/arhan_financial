@@ -113,11 +113,20 @@ WSGI_APPLICATION = 'frontend_service.wsgi.application'
 # ==========================================
 
 # Parse database configuration from $DATABASE_URL
+"""
 DATABASES = {
     'default': dj_database_url.config(
         default='sqlite:///' + os.path.join(BASE_DIR, 'frontend_service.sqlite3'),
         conn_max_age=600
     )
+}
+"""
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': os.path.join(BASE_DIR, 'frontend_service.sqlite3'),
+    }
 }
 
 # Celery Config

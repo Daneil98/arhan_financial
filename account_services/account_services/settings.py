@@ -109,11 +109,20 @@ WSGI_APPLICATION = 'account_services.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
+"""
 DATABASES = {
     'default': dj_database_url.config(
         default='sqlite:///' + os.path.join(BASE_DIR, 'account_service.sqlite3'),
         conn_max_age=600
     )
+}
+"""
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': os.path.join(BASE_DIR, 'account_service.sqlite3'),
+    }
 }
 
 # Celery Config

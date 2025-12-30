@@ -30,9 +30,6 @@ DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "*").split(",")
 
-# Service URLs (Used in client_utils.py)
-ACCOUNT_SERVICE_BASE_URL = os.environ.get('ACCOUNT_SERVICE_BASE_URL', 'http://account:8002')
-
 
 # ==========================================
 # 2. AUTHENTICATION & JWT
@@ -108,11 +105,19 @@ WSGI_APPLICATION = 'payments.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
+"""
 DATABASES = {
     'default': dj_database_url.config(
         default='sqlite:///' + os.path.join(BASE_DIR, 'payment.sqlite3'),
         conn_max_age=600
     )
+}
+"""
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': os.path.join(BASE_DIR, 'payment.sqlite3'),
+    }
 }
 
 # Celery Config
