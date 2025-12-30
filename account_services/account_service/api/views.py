@@ -579,7 +579,7 @@ class GetAndUpdateTicket(APIView):    #CHECH THISS
             ticket = IT_Tickets.objects.filter(id=id).select_for_update().first()
             
             if ticket.resolved == True:
-                return Response({'message': 'Ticket has already been'}, 
+                return Response({'message': 'Ticket has already been resolved'}, 
                                 status= status.HTTP_409_CONFLICT)
             
             ticket.resolved = resolved

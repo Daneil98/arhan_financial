@@ -142,7 +142,7 @@ class Loan(models.Model):
         super().save(*args, **kwargs)
     
 class IT_Tickets(models.Model):
-    user_id = models.IntegerField(unique=True)
+    user_id = models.IntegerField()
     id = models.AutoField(primary_key=True, unique=True)
     subject = models.CharField(max_length=255,choices=[
         ('transaction', 'Transaction'),

@@ -257,14 +257,12 @@ def process_internal_transfer(self, data):
     payer_id = data["payer_account_id"]
     payee_id = data["payee_account_id"]
     amount = data["amount"]
-    pin = data["pin"] 
+    pin = data["pin"]
+    payment_id = data['payment_id'] 
     
     # Update only the Transaction Status locally
     payment = PaymentRequest.objects.filter(
-        payer_account_id=payer_id,
-        payee_account_id=payee_id,
-        amount=amount, 
-        status="PENDING"
+        id = payment_id
     ).first()
     
     # 1. VERIFY PIN
@@ -289,7 +287,7 @@ def process_internal_transfer(self, data):
 
     # 3. CREDIT PAYEE (API CALL)
     # Note: In a real app, if this fails, you must REVERSE the debit (Refund).
-    credit_result = credit_account(user_id, payee_id, amount) # Defaulting payee to savings for now
+    credit_result = credit_account(user_id, payee_id, amount) 
     
     if credit_result.get("status") != "success":
         print(f"[❌] Credit Failed (Need Refund Logic): {credit_result}")
@@ -300,17 +298,15 @@ def process_internal_transfer(self, data):
     # 4. SUCCESS - UPDATE DB & PUBLISH
     payer = get_object_or_404(PaymentAccount, account_number=data['payer_account_id'])
     payee = get_object_or_404(PaymentAccount, account_number=data['payee_account_id'])
-            
-    print(f"[✅] Transfer Successful")
     
-    # Update DB
-    payment = PaymentRequest.objects.filter(payer_account_id=payer_id,
-                                        amount=amount, status="PENDING").first()
     if payment:
         payment.status = "COMPLETED"
         payment.metadata = {'TYPE': 'USER INTERNAL TRANSFER'}
         payment.processed_at = datetime.now()
-        payment.save()       
+        payment.save()
+        
+    else:
+        print("[⚠️] Could not find pending payment record to update")   
         
 
     # Publish Event
@@ -326,6 +322,7 @@ def process_internal_transfer(self, data):
     
     # Assuming _publish_event is defined in this file
     publish_event(self, event_data, "payment.payment.completed")
+    print(f"[✅] Transfer Successful")
     
 
 @shared_task(name="publish.payment.card.charge", bind=True)
@@ -339,14 +336,12 @@ def initiate_card_payment(self, data):
     cvv = data["cvv"]
     amount = data["amount"]
     PIN = data["PIN"]
+    payment_id = data['payment_id']
     
     # We need payer_id immediately for logging failures.
     # Update only the Transaction Status locally
     payment = PaymentRequest.objects.filter(
-        payer_account_id=payer_id,
-        payee_account_id=payee_id,
-        amount=amount, 
-        status="PENDING"
+        id = payment_id
     ).first() 
     # Ideally, the frontend/view passed this in 'data'. If not, we hope verify_card returns it.
     #payer_id = data.get("payer_account_id") 
@@ -393,8 +388,6 @@ def initiate_card_payment(self, data):
         print("[⚠️] Accounts not found locally, skipping event enrichment")
         return
 
-   
-    
     if payment:
         payment.status = "COMPLETED"
         payment.payer_account_id = payer_id # Ensure this is set
