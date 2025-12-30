@@ -305,7 +305,7 @@ def process_internal_transfer(self, data):
         # If not found, Retry in 1 second.
         # This handles the race condition perfectly.
         print(f"[⏳] Payment record not found yet. Retrying...")
-        raise self.retry(countdown=1, max_retries=6)
+        raise self.retry(countdown=1, max_retries=5)
     
     payment.status = "SUCCESS"
     payment.metadata = {'TYPE': 'USER INTERNAL TRANSFER'}
@@ -396,7 +396,7 @@ def initiate_card_payment(self, data):
         # If not found, Retry in 1 second.
         # This handles the race condition perfectly.
         print(f"[⏳] Payment record not found yet. Retrying...")
-        raise self.retry(countdown=1, max_retries=6)
+        raise self.retry(countdown=1, max_retries=5)
     
     payment.status = "SUCCESS"
     payment.payer_account_id = payer_id # Ensure this is set
