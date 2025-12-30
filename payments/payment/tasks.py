@@ -307,7 +307,7 @@ def process_internal_transfer(self, data):
         print(f"[⏳] Payment record not found yet. Retrying...")
         raise self.retry(countdown=1, max_retries=6)
     
-    payment.status = "COMPLETED"
+    payment.status = "SUCCESS"
     payment.metadata = {'TYPE': 'USER INTERNAL TRANSFER'}
     payment.processed_at = datetime.now()
     payment.save()
@@ -398,7 +398,7 @@ def initiate_card_payment(self, data):
         print(f"[⏳] Payment record not found yet. Retrying...")
         raise self.retry(countdown=1, max_retries=6)
     
-    payment.status = "COMPLETED"
+    payment.status = "SUCCESS"
     payment.payer_account_id = payer_id # Ensure this is set
     payment.metadata = {'TYPE': 'USER CARD PAYMENT'}
     payment.processed_at = datetime.now()    
