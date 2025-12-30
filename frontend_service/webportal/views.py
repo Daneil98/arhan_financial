@@ -22,7 +22,7 @@ def check_session(request):
     
     # 1. Check Existence
     if not token:
-        print("[⛔] Check Session: No token found in session.")
+        print("Check Session: No token found in session.")
         return False, None
 
     # 2. Check Expiration
@@ -33,16 +33,16 @@ def check_session(request):
         exp_timestamp = payload.get('exp')
         
         if exp_timestamp and time.time() > exp_timestamp:
-            print("[⛔] Check Session: Token Expired.")
+            print("Check Session: Token Expired.")
             request.session.flush()
             return False, None
             
     except jwt.DecodeError:
-        print("[⛔] Check Session: Token Corrupted/Invalid.")
+        print("Check Session: Token Corrupted/Invalid.")
         request.session.flush()
         return False, None
     except Exception as e:
-        print(f"[⛔] Check Session Error: {e}")
+        print(f"Check Session Error: {e}")
         return False, None
         
     return True, token
@@ -72,8 +72,7 @@ def login_view(request):
                 
                 if response.status_code == 200:
                     data = response.json()
-                    
-                    # 🟢 ROBUST TOKEN EXTRACTION
+
                     # Checks for 'access' (SimpleJWT default) OR 'access_token'
                     access_token = data.get("access") or data.get("access_token")
                     refresh_token = data.get("refresh") or data.get("refresh_token")
@@ -83,18 +82,18 @@ def login_view(request):
                         print(f"[❌] API Response missing token: {data.keys()}")
                         return render(request, 'registration/login.html', {'form': form})
 
-                    # 🟢 STANDARDIZED SESSION KEYS
+                    # STANDARDIZED SESSION KEYS
                     request.session['access_token'] = access_token
                     request.session['refresh_token'] = refresh_token
                     request.session['username'] = username
                     request.session.save() # Force save
                     
-                    print(f"[✅] Login Success. Token saved. Redirecting...")
+                    print(f"Login Success. Token saved. Redirecting...")
                     return redirect('dashboard')
                 else:
                     messages.error(request, "Invalid Credentials")
             except Exception as e:
-                print(f"[❌] Login Exception: {e}")
+                print(f"Login Exception: {e}")
                 messages.error(request, "Service unavailable.")
     else:
         form = LoginForm()
@@ -110,7 +109,7 @@ def logout_view(request):
             client = IdentityClient(token)
             client.logout({"refresh": refresh} if refresh else {})
         except Exception as e:
-            print(f"[⚠️] API Logout failed (non-critical): {e}")
+            print(f"API Logout failed (non-critical): {e}")
 
     request.session.flush()
     messages.info(request, "Logged out.")
@@ -140,8 +139,8 @@ def customer_register_view(request):
                 messages.success(request, "Registration successful! Please login.")
                 return redirect('login')
             else:
-                print(f"[❌] Status: {response.status_code}")
-                print(f"[❌] Body: {response.text}") # Print raw HTML/Text to terminal
+                print(f"Status: {response.status_code}")
+                print(f"Body: {response.text}") # Print raw HTML/Text to terminal
 
                 # Check if content is actually JSON before parsing
                 try:
@@ -171,7 +170,7 @@ def dashboard_view(request):
     # 1. Local Session Check
     is_valid, token = check_session(request)
     if not is_valid:
-        print("[↪️] Redirecting to login (Session Invalid)")
+        print("Redirecting to login (Session Invalid)")
         return redirect('login')
 
     # 2. Remote API Check (Account Service)
@@ -180,14 +179,14 @@ def dashboard_view(request):
         account_response = account_client.dashboard()
 
         if account_response.status_code != 200:
-            print(f"[↪️] Redirecting to login (API rejected token: {account_response.status_code})")
+            print(f"Redirecting to login (API rejected token: {account_response.status_code})")
             messages.error(request, "Session expired (API).")
             return redirect('logout') # Use logout to clear bad session
             
         dashboard_data = account_response.json()
         
     except Exception as e:
-        print(f"[❌] Dashboard API Crash: {e}")
+        print(f"Dashboard API Crash: {e}")
         messages.error(request, "Could not connect to Account Service.")
         return render(request, 'customer_webportal/dashboard.html', {'dashboard_data': {}})
 
@@ -244,7 +243,7 @@ def dashboard_view(request):
         })
 
     except Exception as e:
-        print(f"[⚠️] Transaction History Error: {e}")
+        print(f"Transaction History Error: {e}")
         # Don't crash dashboard if history fails, just show 0s
         dashboard_data.update({'recent_transactions': []})
 
@@ -494,9 +493,17 @@ def create_ticket_view(request):
                 "complaint": form.cleaned_data["complaint"],
                 "subject": form.cleaned_data["subject"],
             }
-            client.create_ticket(data)
-            messages.success(request, "Ticket created.")
-            return redirect('dashboard')
+            response = client.create_ticket(data)
+            if response.status_code == 200:
+                messages.success(request, "Ticket created.")
+                return redirect('dashboard')
+            else:
+                # Try to get specific error message from API
+                try:
+                    err = response.json().get('error', 'TThere was a problem creating that ticket!')
+                except:
+                    err = "There was a problem creating that ticket!"
+                messages.error(request, err)
     else:
         form = CreateTicketForm()
     return render(request, 'customer_webportal/create_ticket.html', {'form': form})
@@ -525,7 +532,7 @@ def internal_transfer_view(request):
             response = client.internal_transfer(data)
             
             if response.status_code == 200:
-                messages.success(request, "Transfer successful!")
+                messages.success(request, "Transfer in Progress!")
                 return redirect('dashboard')
             else:
                 # Try to get specific error message from API
@@ -561,7 +568,7 @@ def card_payment_view(request):
             response = client.card_payment(data)
             
             if response.status_code == 200:
-                messages.success(request, "Transfer successful!")
+                messages.success(request, "Transfer in Progress!")
                 return redirect('dashboard')
             else:
                 # Try to get specific error message from API

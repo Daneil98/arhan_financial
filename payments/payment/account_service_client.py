@@ -6,7 +6,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from django.conf import settings
 
-ACCOUNT_SERVICE_BASE_URL = "http://account_service:8000"   # Docker internal
+ACCOUNT_SERVICE_BASE_URL = 'http://account:8002'   # Docker internal
 
 
 

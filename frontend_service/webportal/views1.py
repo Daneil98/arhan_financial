@@ -28,7 +28,7 @@ def check_session(request):
     
     # 1. Check Existence
     if not token:
-        print("[⛔] Check Session: No token found in session.")
+        print("Check Session: No token found in session.")
         return False, None
 
     # 2. Check Expiration
@@ -39,16 +39,16 @@ def check_session(request):
         exp_timestamp = payload.get('exp')
         
         if exp_timestamp and time.time() > exp_timestamp:
-            print("[⛔] Check Session: Token Expired.")
+            print("Check Session: Token Expired.")
             request.session.flush()
             return False, None
             
     except jwt.DecodeError:
-        print("[⛔] Check Session: Token Corrupted/Invalid.")
+        print("Check Session: Token Corrupted/Invalid.")
         request.session.flush()
         return False, None
     except Exception as e:
-        print(f"[⛔] Check Session Error: {e}")
+        print(f"Check Session Error: {e}")
         return False, None
         
     return True, token
@@ -82,11 +82,10 @@ def staff_login_view(request):
                 if response.status_code == 200:
                     data = response.json()
                     
-                    # 🟢 DEBUG PRINT
+                    #DEBUG PRINT
                     print(f"DEBUG: Staff Login Success. Keys: {data.keys()}")
 
                     # 1. Extract Token (Handle variations)
-                    # Your logs show the API returns 'access_token' (snake_case)
                     access_token = data.get("access_token") or data.get("access")
                     refresh_token = data.get("refresh_token") or data.get("refresh")
                     
@@ -94,7 +93,7 @@ def staff_login_view(request):
                         messages.error(request, "Login failed: No access token received.")
                         return render(request, 'staff_webportal/login.html', {'form': form})
 
-                    # 2. SAVE TO SESSION (CRITICAL FIX)
+                    # 2. SAVE TO SESSION 
                     # You MUST use 'access_token' to match check_session()
                     request.session['access_token'] = access_token
                     request.session['refresh_token'] = refresh_token
@@ -109,7 +108,7 @@ def staff_login_view(request):
                 else:
                     messages.error(request, "Invalid Staff Credentials")
             except Exception as e:
-                print(f"[❌] Staff Login Error: {e}")
+                print(f"Staff Login Error: {e}")
                 messages.error(request, "System Error")
     else:
         form = LoginForm()
@@ -126,7 +125,7 @@ def logout_view(request):
             client = IdentityClient(token)
             client.logout({"refresh": refresh} if refresh else {})
         except Exception as e:
-            print(f"[⚠️] API Logout failed (non-critical): {e}")
+            print(f"API Logout failed (non-critical): {e}")
 
     request.session.flush()
     messages.info(request, "Logged out.")
@@ -157,8 +156,8 @@ def staff_register_view(request):
                 messages.success(request, "Registration successful! Please login.")
                 return redirect('staff_login')
             else:
-                print(f"[❌] Status: {response.status_code}")
-                print(f"[❌] Body: {response.text}") # Print raw HTML/Text to terminal
+                print(f"Status: {response.status_code}")
+                print(f"Body: {response.text}") # Print raw HTML/Text to terminal
 
                 # Check if content is actually JSON before parsing
                 try:
