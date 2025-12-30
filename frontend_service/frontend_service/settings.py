@@ -182,7 +182,7 @@ SESSION_SAVE_EVERY_REQUEST = True
 CSRF_TRUSTED_ORIGINS = [
     '[http://94.130.183.1](http://94.130.183.1)',
     'http://localhost',
-    '[http://127.0.0.1](http://127.0.0.1)'
+    
 ]
 
 # 2. Since you aren't using HTTPS yet, ensure these are False

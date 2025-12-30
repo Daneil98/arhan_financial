@@ -97,7 +97,7 @@ These must be present in every service's .env file.
 ### Django Configuration
 DEBUG=True
 SECRET_KEY=change_this_to_a_unique_random_string_per_service
-ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
+ALLOWED_HOSTS=localhost,,0.0.0.0
 
 #### Database (Auto-overwritten by Render, used for Local Docker)
 DATABASE_URL=sqlite:///db.sqlite3
