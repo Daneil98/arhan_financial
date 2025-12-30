@@ -31,7 +31,7 @@ DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "*").split(",")
 
 # Service URLs (Used in client_utils.py)
-ACCOUNT_SERVICE_BASE_URL = os.environ.get('ACCOUNT_SERVICE_BASE_URL', 'http://127.0.0.1:8002')
+ACCOUNT_SERVICE_BASE_URL = os.environ.get('ACCOUNT_SERVICE_BASE_URL', 'http://account:8002')
 
 
 # ==========================================
