@@ -260,11 +260,6 @@ def process_internal_transfer(self, data):
     pin = data["pin"]
     payment_id = data['payment_id'] 
     
-    # Update only the Transaction Status locally
-    payment = PaymentRequest.objects.filter(
-        id = payment_id
-    ).first()
-    
     # 1. VERIFY PIN
     # We call the helper API function, not local DB
     pin_response = verify_pin(user_id, payer_id, pin)
@@ -298,6 +293,12 @@ def process_internal_transfer(self, data):
     # 4. SUCCESS - UPDATE DB & PUBLISH
     payer = get_object_or_404(PaymentAccount, account_number=data['payer_account_id'])
     payee = get_object_or_404(PaymentAccount, account_number=data['payee_account_id'])
+    
+    
+    # Update only the Transaction Status locally
+    payment = PaymentRequest.objects.filter(
+        id = payment_id
+    ).first()
     
     if payment:
         payment.status = "COMPLETED"
@@ -338,11 +339,6 @@ def initiate_card_payment(self, data):
     PIN = data["PIN"]
     payment_id = data['payment_id']
     
-    # We need payer_id immediately for logging failures.
-    # Update only the Transaction Status locally
-    payment = PaymentRequest.objects.filter(
-        id = payment_id
-    ).first() 
     # Ideally, the frontend/view passed this in 'data'. If not, we hope verify_card returns it.
     #payer_id = data.get("payer_account_id") 
 
@@ -388,6 +384,10 @@ def initiate_card_payment(self, data):
         print("[⚠️] Accounts not found locally, skipping event enrichment")
         return
 
+    # Update only the Transaction Status locally
+    payment = PaymentRequest.objects.filter(
+        id = payment_id
+    ).first()
     if payment:
         payment.status = "COMPLETED"
         payment.payer_account_id = payer_id # Ensure this is set
