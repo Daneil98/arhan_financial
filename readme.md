@@ -1,6 +1,8 @@
 # Arhan Financial Platform 🏦
 
-A scalable, event-driven banking platform built using Django and a Microservices Architecture. The system simulates core banking operations including account management, secure funds transfer (via transfers, card payments or loans), card processing, and double-entry bookkeeping, orchestrated via an Nginx API Gateway.
+A Dockerized scalable, event-driven banking platform built using Docker, Django and a Microservices Architecture. The system simulates core banking operations including account management, secure funds transfer (via transfers, card payments or loans), card processing, and double-entry bookkeeping, orchestrated via an Nginx API Gateway.
+
+Live @ 94.130.183.1:8005
 
 🚀 Key Architecture
 
@@ -19,7 +21,7 @@ The project is split into five decoupled services that communicate asynchronousl
 
 🛠️ Tech Stack
 
-Framework: Python, Django, Django Rest Framework (DRF)
+Framework: Python, Django, Django Rest Framework (DRF), Docker
 
 Infrastructure: Nginx (Gateway), RabbitMQ (Message Broker), Celery (Workers)
 
@@ -37,18 +39,24 @@ Database: Distributed SQL Databases (per service)
 
 
 ## Run Locally
-
 Clone the project
-
 ```bash
   git clone https://github.com/Daneil98/arhan_financial
 ```
 
-Go to each microservice project directory and do the following:
-
+Go to the project root directory
 ```bash
   cd arhan_financial
 ```
+
+## Run Locally with Docker
+
+```bash
+  docker compose up --build
+```
+
+## Run Locally without Docker
+Go to each microservice project directory and do the following:
 
 ```bash
   cd "microservice_project_name" (e.g payments)
