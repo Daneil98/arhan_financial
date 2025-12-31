@@ -1,4 +1,4 @@
-# Arhan Financial Platform 🏦
+# Arhan Financial Platform 🏦 live @ http://94.130.183.1:8005
 
 A scalable, event-driven banking platform built using Django and a Microservices Architecture. The system simulates core banking operations including account management, secure funds transfer (via transfers, card payments or loans), card processing, and double-entry bookkeeping, orchestrated via an Nginx API Gateway.
 
@@ -148,5 +148,6 @@ Run these commands in your terminal to generate secure keys:
 Django SECRET_KEY: python -c "import secrets; print(secrets.token_urlsafe(50))"
 
 JWT_SHARED_SECRET: python -c "import secrets; print(secrets.token_hex(32))"
+
 
 ENCRYPTION_KEY: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
