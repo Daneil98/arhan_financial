@@ -279,6 +279,25 @@ def consume_card_charge(self, data):
             amount=amount,
             currency=currency,
         )
+        
+        # 2. STOP THE CLOCK
+        end_time = time.time()
+        
+        # 3. CALCULATE DURATION
+        start_time = data.get("initiated_at_ts")
+        
+        if start_time:
+            # Calculate difference
+            duration = end_time - float(start_time)
+            
+            # Convert to milliseconds for easier reading
+            duration_ms = duration * 1000
+            
+            print(f"==========================================")
+            print(f"[⏱️] END-TO-END TRANSACTION TIME: {duration_ms:.2f} ms")
+            print(f"==========================================")
+        else:
+            print("[⚠️] No timestamp found in event data")
 
     print(f"Recorded ledger transaction {ref} successfully.")
 

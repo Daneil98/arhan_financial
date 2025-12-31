@@ -67,9 +67,12 @@ class CardPaymentAPIView(APIView):
         user_id = request.user.id
         acc = get_object_or_404(PaymentAccount, user_id=user_id)
         payer_account_id = acc.account_number
+         # 1. START THE CLOCK
+        start_time = time.time() 
         
         if serializer.is_valid():
             with transaction.atomic():
+                
                 # Create the Pending Transaction Record HERE (Before Celery)
                 # This ensures you have a record even if Celery crashes immediately
                 payment_req = PaymentRequest.objects.create(
@@ -89,7 +92,9 @@ class CardPaymentAPIView(APIView):
                     "amount": str(serializer.validated_data['amount']), # Use String for currency!
                     "PIN": str(serializer.validated_data['pin']),
                     "card_number": str(serializer.validated_data['card_number']),
-                    "cvv": str(serializer.validated_data['cvv'])
+                    "cvv": str(serializer.validated_data['cvv']),
+                    # 2. ADD TIMESTAMP TO PAYLOAD
+                    "initiated_at_ts": start_time
                 }
                 
                 transaction.on_commit(lambda: initiate_card_payment.apply_async(args=[data], queue='payment.internal'))

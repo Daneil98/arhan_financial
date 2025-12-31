@@ -298,7 +298,7 @@ def process_internal_transfer(self, data):
     # Update only the Transaction Status locally
     try:
         payment = PaymentRequest.objects.select_for_update().get(id=payment_id)
-        payment.status = "SUCCESS"
+        payment.status = "COMPLETED"
         payment.metadata = {'TYPE': 'USER INTERNAL TRANSFER'}
         payment.processed_at = datetime.now()
         payment.save() 
@@ -385,7 +385,7 @@ def initiate_card_payment(self, data):
     # Update only the Transaction Status locally
     try:
         payment = PaymentRequest.objects.select_for_update().get(id=payment_id)
-        payment.status = "SUCCESS"
+        payment.status = "COMPLETED"
         payment.payer_account_id = payer_id # Ensure this is set
         payment.metadata = {'TYPE': 'USER CARD PAYMENT'}
         payment.processed_at = datetime.now()    
@@ -406,7 +406,8 @@ def initiate_card_payment(self, data):
         "payee_user_id": payee.user_id,
         "amount": amount,
         "reference": str(payment.id) if payment else "unknown",
-        "currency": "NGN"
+        "currency": "NGN",
+        "initiated_at_ts": data.get("initiated_at_ts")
     }
     
     print(event_data)
