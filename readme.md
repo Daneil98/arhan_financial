@@ -104,7 +104,7 @@ Each microservice requires a .env file in its root directory (e.g., account_serv
 These must be present in every service's .env file.
 
 ### Django Configuration
-DEBUG=True
+DEBUG=False
 SECRET_KEY=change_this_to_a_unique_random_string_per_service
 ALLOWED_HOSTS=localhost,,0.0.0.0
 
@@ -119,7 +119,7 @@ CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672/
 JWT_SHARED_SECRET=your-secure-shared-key-must-match-everywhere
 
 
-2. Service-Specific Variables
+Service-Specific Variables
 
 Add these in addition to the common variables for the specific service.
 

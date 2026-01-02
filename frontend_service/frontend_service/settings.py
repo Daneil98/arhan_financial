@@ -138,7 +138,7 @@ CELERY_TIMEZONE = 'UTC'
 CELERY_ACKS_LATE = True   
 CELERY_TASK_REJECT_ON_WORKER_LOST = True
 CELERY_TASK_TRACK_STARTED = True
-CELERY_TASK_DEFAULT_QUEUE = 'frontend_service_default' # Changed name to avoid conflict
+CELERY_TASK_DEFAULT_QUEUE = 'frontend_service.default' # Changed name to avoid conflict
 
 
 # ==========================================

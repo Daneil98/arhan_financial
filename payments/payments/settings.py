@@ -129,7 +129,7 @@ CELERY_TIMEZONE = 'UTC'
 CELERY_ACKS_LATE = True   
 CELERY_TASK_REJECT_ON_WORKER_LOST = True
 CELERY_TASK_TRACK_STARTED = True
-CELERY_TASK_DEFAULT_QUEUE = 'payment_internal'
+CELERY_TASK_DEFAULT_QUEUE = 'payment.internal'
 
 
 # ==========================================

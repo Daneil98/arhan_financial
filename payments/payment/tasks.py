@@ -148,8 +148,6 @@ def consume_loan_updated(self, data):
         PaymentRequest.objects.filter(payer_account_id=1, amount=amount, status="PENDING").update(status="FAILED_NEEDS_REFUND")
         return
     
-    # 3. SUCCESS - UPDATE DB & PUBLISH
-    print(f"[✅] Transfer Successful")
     
     # Update DB
     payment = PaymentRequest.objects.filter(payer_account_id=payer_id,
@@ -172,6 +170,8 @@ def consume_loan_updated(self, data):
         "loan_status": loan_status,
         "loan_id": loan_id,
     }
+        # 3. SUCCESS - UPDATE DB & PUBLISH
+    print(f"[✅] Transfer Successful")
     
     # Assuming _publish_event is defined in this file
     publish_event(self, event_data, "payment.loan.updated")
@@ -220,8 +220,6 @@ def loan_repayment(self, data):
         PaymentRequest.objects.filter(payer_account_id=1, amount=amount_to_repay, status="PENDING").update(status="FAILED_NEEDS_REFUND")
         return
     
-    # 3. SUCCESS - UPDATE DB & PUBLISH
-    print(f"[✅] Transfer Successful")
     
     # Update DB
     payment = PaymentRequest.objects.filter(payer_account_id=payer_id,
@@ -314,7 +312,7 @@ def process_internal_transfer(self, data):
         "payer_user_id": payer.user_id,
         "payee_user_id": payee.user_id,
         "amount": amount,
-        "reference": str(payment.id) if payment else "unknown",
+        "reference": str(payment.id) ,
         "currency": "NGN",
         "initiated_at_ts": data.get("initiated_at_ts") 
     }

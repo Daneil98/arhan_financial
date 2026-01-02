@@ -58,29 +58,6 @@ class create_ledgerAccount(APIView):
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
-    
-class create_ledgerEntry(APIView):
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
-    
-    def post(self, request):
-        serializer = LedgerEntrySerializer(data=request.data)
-        if serializer.is_valid():
-            entry = serializer.save()
-            
-            data = {
-                "id": str(entry.id),
-                "transaction": str(entry.txn),
-                "ledger_account": str(entry.payer_account),
-                "entry_type": str(entry.entry_type),
-                "amount": str(entry.amount),
-                "currency": str(entry.currency),
-                "created_at": entry.created_at.isoformat(),
-            }
-            publish_ledgerEntry_created.apply_async(args=[data])
-            return Response({"message": "Ledger Entry successfully created",
-                             "entry": entry}, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=400)
 
 
 class create_transaction(APIView):

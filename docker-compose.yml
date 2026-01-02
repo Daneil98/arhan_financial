@@ -33,7 +33,7 @@ services:
     command: python manage.py runserver 0.0.0.0:8001
     volumes:
       - ./arhan_financial:/app
-      - ./arhan_financial/Identity_service.sqlite3:/arhan_financial/Identity_service.sqlite3
+      - ./arhan_financial/Identity_service.sqlite3:/identity/Identity_service.sqlite3
     ports:
       - "8001:8001"
     environment:
@@ -50,7 +50,7 @@ services:
     command: celery -A arhan_financial worker -l info
     volumes:
       - ./arhan_financial:/app
-      - ./arhan_financial/Identity_service.sqlite3:/arhan_financial/Identity_service.sqlite3
+      - ./arhan_financial/Identity_service.sqlite3:/identity/Identity_service.sqlite3
     environment:
       - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
     depends_on:
@@ -67,7 +67,7 @@ services:
     command: python manage.py runserver 0.0.0.0:8002
     volumes:
       - ./account_services:/app
-      - ./account_services/account_service.sqlite3:/account_services/account_service.sqlite3
+      - ./account_services/account_service.sqlite3:/account/account_service.sqlite3
     ports:
       - "8002:8002"
     environment:
@@ -83,10 +83,10 @@ services:
     env_file:
       - ./.env
     # Note: Using the event router configuration we discussed
-    command: celery -A account_services worker -l info
+    command: celery -A account_services worker -Q account_service.internal,celery -l info
     volumes:
       - ./account_services:/app
-      - ./account_services/account_service.sqlite3:/account_services/account_service.sqlite3
+      - ./account_services/account_service.sqlite3:/account/account_service.sqlite3
     environment:
       - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
     depends_on:
@@ -140,7 +140,7 @@ services:
     command: python manage.py runserver 0.0.0.0:8003
     volumes:
       - ./ledger_service:/app
-      - ./ledger_service/Ledger.sqlite3:/ledger_service/Ledger.sqlite3
+      - ./ledger_service/Ledger.sqlite3:/ledger/Ledger.sqlite3
     ports:
       - "8003:8003"
     environment:
@@ -154,10 +154,10 @@ services:
     build: ./ledger_service
     env_file:
       - ./.env
-    command: celery -A ledger_service worker -l info
+    command: celery -A ledger_service worker -Q ledger.internal,celery -l info
     volumes:
       - ./ledger_service:/app
-      - ./ledger_service/Ledger.sqlite3:/ledger_service/Ledger.sqlite3
+      - ./ledger_service/Ledger.sqlite3:/ledger/Ledger.sqlite3
     environment:
       - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
     depends_on:
@@ -175,7 +175,7 @@ services:
     command: sh -c "python manage.py collectstatic --noinput && python manage.py runserver 0.0.0.0:8005"
     volumes:
       - ./frontend_service:/app
-      - ./frontend_service/frontend_service.sqlite3:/frontend_service/frontend_service.sqlite3
+      - ./frontend_service/frontend_service.sqlite3:/frontend/frontend_service.sqlite3
     ports:
       - "8005:8005"
     environment:

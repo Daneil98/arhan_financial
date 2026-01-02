@@ -32,7 +32,7 @@ class Transaction(models.Model):
     is_reconciled = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"Txn {self.reference} by {self.user_id}"
+        return f"Txn {self.reference} for {self.user_id}"
 
 
 class LedgerEntry(models.Model):
