@@ -94,10 +94,18 @@ class LoanApplicationForm(forms.Form):
         decimal_places=2,
         widget=forms.NumberInput(attrs={'class': 'form-control'})
     )
+
     duration = forms.ChoiceField(
         choices=DURATION_CHOICES,
         widget=forms.Select(attrs={'class': 'form-control'})
     )
+    
+    def clean_amount(self):
+        amount = self.cleaned_data.get('amount')
+        if amount and amount <= 0:
+            raise ValidationError("amount must be positive.")
+        return amount
+
 
 
 class CreateTicketForm(forms.Form):
@@ -207,6 +215,12 @@ class InternalTransferForm(forms.Form):
         label="Account PIN",
         widget=forms.PasswordInput(attrs={'class': 'form-control'})
     )
+    
+    def clean_amount(self):
+        amount = self.cleaned_data.get('amount')
+        if amount and amount < 50:
+            raise ValidationError("amount must be at least 50.")
+        return amount
 
 class CardPaymentForm(forms.Form):
     """For External Card Payments"""
@@ -231,6 +245,12 @@ class CardPaymentForm(forms.Form):
         label="Card PIN",
         widget=forms.PasswordInput(attrs={'class': 'form-control'})
     )
+    
+    def clean_amount(self):
+        amount = self.cleaned_data.get('amount')
+        if amount and amount < 50:
+            raise ValidationError("amount must be at least 50.")
+        return amount
     
 class LoanSearchForm(forms.Form):
     account_number = forms.CharField(

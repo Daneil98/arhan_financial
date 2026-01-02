@@ -46,7 +46,7 @@ JWT_SHARED_SECRET = os.environ.get('JWT_SHARED_SECRET', "fallback-secret-change-
 SIMPLE_JWT = {
     'SIGNING_KEY': JWT_SHARED_SECRET,
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=15), # ✅ Fixed typo (LIFEIME -> LIFETIME)
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=15), 
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
     'TOKEN_USER_CLASS': 'account_service.models.User', 
@@ -74,7 +74,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware', # 🟢 Added WhiteNoise for Render
+    'whitenoise.middleware.WhiteNoiseMiddleware', 
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -153,7 +153,7 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.UserRateThrottle'
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon': '1000/day',
+        'anon': '80/day',
         'user': '1000/day'
     }
 }
