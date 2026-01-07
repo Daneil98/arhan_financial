@@ -3,7 +3,7 @@ name: Deploy to Hetzner
 # Trigger: Run this only when code is pushed to the 'main' branch
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "master" ]
 
 jobs:
   deploy:
@@ -30,7 +30,7 @@ jobs:
           cd arhan_financial
           
           echo "Pulling latest code..."
-          git pull origin main
+          git pull origin master
           
           echo "Rebuilding and Restarting Containers..."
           # We use the specific file to be safe
