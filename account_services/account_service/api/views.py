@@ -206,7 +206,7 @@ class GetAndUpdateLoan(APIView):    #CHECH THISS
             loan.loan_status = loan_status
             loan.save()
             
-            acc = BankAccount.objects.filter(account_number=account_number).first()
+            acc = BankAccount.objects.filter(account_number=account_number).only('account_number')
                 
             if acc is None:
                 return Response({"error": "No account found for this user."}, status=404)

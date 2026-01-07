@@ -1,0 +1,42 @@
+name: Deploy to Hetzner
+
+# Trigger: Run this only when code is pushed to the 'main' branch
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Checkout the code (Standard step)
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # 2. SSH into Hetzner and run the update commands
+    - name: Deploy via SSH
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.HOST_IP }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          # Stop if any command fails
+          set -e
+          
+          echo "Navigating to project folder..."
+          cd arhan_financial
+          
+          echo "Pulling latest code..."
+          git pull origin main
+          
+          echo "Rebuilding and Restarting Containers..."
+          # We use the specific file to be safe
+          docker compose up -d --build
+          
+          echo "Cleaning up unused images..."
+          docker image prune -f
+          
+          echo "Deployment Complete!"
