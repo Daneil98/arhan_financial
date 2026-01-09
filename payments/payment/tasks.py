@@ -103,7 +103,7 @@ def publish_event(task_self, event_data, routing_key):
 
 @shared_task(name='consume.payment.loan.updated', bind=True)
 def consume_loan_updated(self, data):
-    print(f"[⚙️] Processing Loan data: {data}")
+    print(f"Processing Loan data: {data}")
 
     # Extract Data (Safely)
     user_id = data["user_id"]
@@ -120,21 +120,20 @@ def consume_loan_updated(self, data):
         print("Loan has not been Approved")
         return 
     
-    PaymentRequest.objects.create(
+    payment = PaymentRequest.objects.create(
         payer_account_id = 1,
         payee_account_id = payee_id,
         amount=data['amount'],
         currency = "NGN",
         status = "PENDING",
         payment_type = "INTERNAL TRANSFER",
-        # Store the task ID if needed later
     )
     
     #1. DEBIT THE BANKPOOL
     debit_result = debit_bank(user_id, amount)
     
     if debit_result.get("status") != "success":
-        print(f"[❌] Debit Failed: {debit_result}")
+        print(f"Debit Failed: {debit_result}")
         PaymentRequest.objects.filter(payer_account_id=payer_id, amount=amount, 
                                     status="PENDING").update(status="FAILED")
         return
@@ -143,20 +142,20 @@ def consume_loan_updated(self, data):
     credit_result = credit_account(user_id, payee_id, amount) 
     
     if credit_result.get("status") != "success":
-        print(f"[❌] Credit Failed (Need Refund Logic): {credit_result}")
-        # Ideally trigger a refund task here
+        print(f"Credit Failed (Need Refund Logic): {credit_result}")
         PaymentRequest.objects.filter(payer_account_id=1, amount=amount, status="PENDING").update(status="FAILED_NEEDS_REFUND")
+        
+        #Transaction Reversal
+        credit_bank(user_id, amount)      #Credit (Refund) the bank
         return
     
-    
     # Update DB
-    payment = PaymentRequest.objects.filter(payer_account_id=payer_id,
-                                        amount=amount, status="PENDING").first()
-    if payment:
-        payment.status = "COMPLETED"
-        payment.metadata = {'TYPE': 'LOAN DISBURSEMENT'}
-        payment.processed_at = datetime.now()
-        payment.save()       
+    with transaction.atomic():
+        locked_payment = PaymentRequest.objects.select_for_update().get(id=payment.id)
+        locked_payment.status = "COMPLETED"
+        locked_payment.metadata = {'TYPE': 'LOAN DISBURSEMENT'}
+        locked_payment.processed_at = datetime.now()
+        locked_payment.save()       
         
 
     # Publish Event
@@ -171,7 +170,7 @@ def consume_loan_updated(self, data):
         "loan_id": loan_id,
     }
         # 3. SUCCESS - UPDATE DB & PUBLISH
-    print(f"[✅] Transfer Successful")
+    print(f"Transfer Successful")
     
     # Assuming _publish_event is defined in this file
     publish_event(self, event_data, "payment.loan.updated")
@@ -206,7 +205,7 @@ def loan_repayment(self, data):
     debit_result = debit_account(user_id, payer_id, amount_to_repay)
     
     if debit_result.get("status") != "success":
-        print(f"[❌] Debit Failed: {debit_result}")
+        print(f"Debit Failed: {debit_result}")
         PaymentRequest.objects.filter(payer_account_id=payer_id, amount=amount_to_repay, 
                                     status="PENDING").update(status="FAILED")
         return
@@ -215,9 +214,9 @@ def loan_repayment(self, data):
     credit_result = credit_bank(user_id, amount_to_repay) 
     
     if credit_result.get("status") != "success":
-        print(f"[❌] Credit Failed (Need Refund Logic): {credit_result}")
-        # Ideally trigger a refund task here
+        print(f"Credit Failed: {credit_result}")
         PaymentRequest.objects.filter(payer_account_id=1, amount=amount_to_repay, status="PENDING").update(status="FAILED_NEEDS_REFUND")
+        credit_account(user_id, payer_id, amount_to_repay)  #Refund(credit) the user
         return
     
     
@@ -230,7 +229,6 @@ def loan_repayment(self, data):
         payment.processed_at = datetime.now()
         payment.save()       
         
-
     # Publish Event
     event_data = {
         "event": "payment.payment.completed",
@@ -240,15 +238,14 @@ def loan_repayment(self, data):
         "reference": str(payment.id) if payment else "unknown",
         "currency": "NGN",
     }
-    
-    # Assuming _publish_event is defined in this file
+
     publish_event(self, event_data, "payment.loan.repayment")
 
 
 
 @shared_task(name="publish.payment.payment.completed", bind=True)
 def process_internal_transfer(self, data):
-    print(f"[⚙️] Processing Transfer: {data}")
+    print(f"Processing Transfer: {data}")
     
     # Extract Data (Safely)
     user_id = data["user_id"]
@@ -258,53 +255,57 @@ def process_internal_transfer(self, data):
     pin = data["pin"]
     payment_id = data['payment_id'] 
     
-    # 1. VERIFY PIN
-    # We call the helper API function, not local DB
-    pin_response = verify_pin(user_id, payer_id, pin)
-    
-    if not pin_response.get("data", {}).get("validity", False):
-        print(f"[⛔] Invalid PIN for {payer_id}")
-        # Update your local PaymentRequest model to FAILED
-        PaymentRequest.objects.filter(payer_account_id=payer_id, amount=amount, 
-                                      status="PENDING").update(status="FAILED")
-        return
-
-    # 2. DEBIT PAYER (API CALL)
-    debit_result = debit_account(user_id, payer_id, amount)
-    
-    if debit_result.get("status") != "success":
-        print(f"[❌] Debit Failed: {debit_result}")
-        PaymentRequest.objects.filter(payer_account_id=payer_id, amount=amount, 
-                                    status="PENDING").update(status="FAILED")
-        return
-
-    # 3. CREDIT PAYEE (API CALL)
-    # Note: In a real app, if this fails, you must REVERSE the debit (Refund).
-    credit_result = credit_account(user_id, payee_id, amount) 
-    
-    if credit_result.get("status") != "success":
-        print(f"[❌] Credit Failed (Need Refund Logic): {credit_result}")
-        # Ideally a refund task here, but no need since atomic transaction
-        PaymentRequest.objects.filter(payer_account_id=payer_id, amount=amount, status="PENDING").update(status="FAILED_NEEDS_REFUND")
-        return
-
-    # 4. SUCCESS - UPDATE DB & PUBLISH
-    payer = get_object_or_404(PaymentAccount, account_number=data['payer_account_id'])
-    payee = get_object_or_404(PaymentAccount, account_number=data['payee_account_id'])
-    
-    
-    # Update only the Transaction Status locally
     try:
         payment = PaymentRequest.objects.select_for_update().get(id=payment_id)
+        
+        if payment.status == "COMPLETED":
+            print(f" Payment {payment_id} already completed. Skipping.")
+            return
+        
+        # 1. VERIFY PIN
+        pin_response = verify_pin(user_id, payer_id, pin)
+        
+        if not pin_response.get("data", {}).get("validity", False):
+            print(f"Invalid PIN for {payer_id}")
+            # Mark Payment as FAILED
+            PaymentRequest.objects.filter(payer_account_id=payer_id, amount=amount, 
+                                        status="PENDING").update(status="FAILED")
+            return
+
+        # 2. DEBIT PAYER (API CALL)
+        debit_result = debit_account(user_id, payer_id, amount)
+        
+        if debit_result.get("status") != "success":
+            print(f"Debit Failed: {debit_result}")
+            PaymentRequest.objects.filter(payer_account_id=payer_id, amount=amount, 
+                                        status="PENDING").update(status="FAILED")
+            return
+
+        # 3. CREDIT PAYEE (API CALL)
+        credit_result = credit_account(user_id, payee_id, amount) 
+        
+        if credit_result.get("status") != "success":
+            print(f"Credit Failed: {credit_result}")
+            
+            PaymentRequest.objects.filter(payer_account_id=payer_id, amount=amount, status="PENDING").update(status="FAILED_NEEDS_REFUND")
+            credit_account(user_id, payer_id, amount)   #Credit (Refund) the user
+            return
+
+        # 4. SUCCESS - UPDATE DB & PUBLISH
+        payer = get_object_or_404(PaymentAccount, account_number=data['payer_account_id'])
+        payee = get_object_or_404(PaymentAccount, account_number=data['payee_account_id'])
+        
+        
+        # Update only the Transaction Status locally
         payment.status = "COMPLETED"
         payment.metadata = {'TYPE': 'USER INTERNAL TRANSFER'}
         payment.processed_at = datetime.now()
         payment.save() 
     except:
-        # If not found, Retry in 1 second.
-        # This handles the race condition perfectly.
-        print(f"[⏳] Payment record not found yet. Retrying...")
+        # If not found, Retry in 1 second, for handling race conditions
+        print(f"Payment record not found yet. Retrying...")
         raise self.retry(countdown=1, max_retries=5)
+
 
     # Publish Event
     event_data = {
@@ -319,12 +320,12 @@ def process_internal_transfer(self, data):
     
     # Assuming _publish_event is defined in this file
     publish_event(self, event_data, "payment.payment.completed")
-    print(f"[✅] Transfer Successful")
+    print(f"Transfer Successful")
     
 
 @shared_task(name="publish.payment.card.charge", bind=True)
 def initiate_card_payment(self, data):
-    print(f"[🚀] TASK STARTED. Processing for User ID: {data.get('user_id')}")
+    print(f"TASK STARTED. Processing for User ID: {data.get('user_id')}")
     # Extract Data (Safely)
     user_id = data["user_id"]
     payer_id = data["payer_account_id"]
@@ -335,71 +336,71 @@ def initiate_card_payment(self, data):
     PIN = data["PIN"]
     payment_id = data['payment_id']
     
-    # Ideally, the frontend/view passed this in 'data'. If not, we hope verify_card returns it.
-    #payer_id = data.get("payer_account_id") 
-
-    # Step 1: Verify card details and pin
-    card_response = verify_card(user_id, card_number, cvv, PIN)
-    
-    # If verify_card returns the account ID, we ensure we have it
-    card_data = card_response.get("data", {})
-    
-    if not card_data.get("validity", False):
-        print(f"[⛔] Invalid card details")
-        PaymentRequest.objects.filter(payer_account_id=payer_id, amount=amount, 
-                                        status="PENDING").update(status="FAILED")
-        return # 🛑 CRITICAL FIX: You MUST stop here if card is invalid!
-
-    # 2. DEBIT PAYER (API CALL)
-    # The API call actually moves the money in the Account Service
-    debit_result = debit_account(user_id, payer_id, amount)
-    
-    if debit_result.get("status") != "success":
-        print(f"[❌] Debit Failed: {debit_result}")
-        PaymentRequest.objects.filter(payer_account_id=payer_id, amount=amount, 
-                                    status="PENDING").update(status="FAILED")                                               
-        return
-
-
-    # 3. CREDIT PAYEE (API CALL)
-    credit_result = credit_account(user_id, payee_id, amount)
-    
-    if credit_result.get("status") != "success":
-        print(f"[❌] Credit Failed (Need Refund Logic): {credit_result}")
-        PaymentRequest.objects.filter(payer_account_id=payer_id, amount=amount, 
-                                    status="PENDING").update(status="FAILED_NEEDS_REFUND")
-        # In a real app, you would queue a 'refund_payer' task here
-        return
-
-    # 4. SUCCESS - UPDATE DB & PUBLISH
-    # We fetch these just to get User IDs for the event (Read Only)
     try:
-        payer = PaymentAccount.objects.get(account_number=payer_id)
-        payee = PaymentAccount.objects.get(account_number=payee_id)
-    except PaymentAccount.DoesNotExist:
-        print("[⚠️] Accounts not found locally, skipping event enrichment")
-        return
+        #Lock the Payment Request object for the transaction (Concurrency Control) 
+        payment = PaymentRequest.objects.select_for_update().get(id=payment_id, status='PENDING')
+        
+        #Logical Idempotency Check
+        if payment.status == "COMPLETED":
+            print(f"Payment {payment_id} already completed. Skipping.")
+            return
+        
+        # Step 1: Verify card details and pin
+        card_response = verify_card(user_id, card_number, cvv, PIN)
+        
+        # If verify_card returns the account ID, we ensure we have it
+        card_data = card_response.get("data", {})
+        
+        if not card_data.get("validity", False):
+            print(f"Invalid card details")
+            PaymentRequest.objects.filter(payer_account_id=payer_id, amount=amount, 
+                                            status="PENDING").update(status="FAILED")
+            return 
 
-    # Update only the Transaction Status locally
-    try:
-        payment = PaymentRequest.objects.select_for_update().get(id=payment_id)
+        # 2. DEBIT PAYER (API CALL)
+        debit_result = debit_account(user_id, payer_id, amount)
+        
+        if debit_result.get("status") != "success":
+            print(f"Debit Failed: {debit_result}")
+            PaymentRequest.objects.filter(payer_account_id=payer_id, amount=amount, 
+                                        status="PENDING").update(status="FAILED")                                               
+            return
+
+
+        # 3. CREDIT PAYEE (API CALL)
+        credit_result = credit_account(user_id, payee_id, amount)
+        
+        if credit_result.get("status") != "success":
+            print(f"Credit Failed: {credit_result}")
+            PaymentRequest.objects.filter(payer_account_id=payer_id, amount=amount, 
+                                        status="PENDING").update(status="FAILED_NEEDS_REFUND")
+            credit_account(user_id, payer_id, amount)   #Credit (Refund) the user
+            return
+
+        # 4. SUCCESS - UPDATE DB & PUBLISH
+        try:
+            payer = PaymentAccount.objects.get(account_number=payer_id)
+            payee = PaymentAccount.objects.get(account_number=payee_id)
+        except PaymentAccount.DoesNotExist:
+            print("Accounts not found locally, skipping event enrichment")
+            return
+
+        # Update only the Transaction Status locally
         payment.status = "COMPLETED"
-        payment.payer_account_id = payer_id # Ensure this is set
+        payment.payer_account_id = payer_id
         payment.metadata = {'TYPE': 'USER CARD PAYMENT'}
         payment.processed_at = datetime.now()    
         payment.save()
         
     except:
-        # If not found, Retry in 1 second.
-        # This handles the race condition perfectly.
-        print(f"[⏳] Payment record not found yet. Retrying...")
+        # If not found, Retry in 1 second, for handling race conditions
+        print(f"Payment record not found yet. Retrying...")
         raise self.retry(countdown=1, max_retries=5)
     
 
     # Publish Event
     event_data = {
         "event": "payment.card.charge",
-        # Removed the empty string syntax error here
         "payer_user_id": payer.user_id,
         "payee_user_id": payee.user_id,
         "amount": amount,
