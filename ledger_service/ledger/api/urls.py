@@ -7,7 +7,6 @@ app_name = 'ledger_api'
 
 urlpatterns = [
     path("accounts/", views.create_ledgerAccount.as_view()),
-    path("entries/", views.create_ledgerEntry.as_view()),
     path("transactions/", views.create_transaction.as_view(), name='transactions'),
     
     path("ledger_logs/", views.BankLogs.as_view(), name='ledger_logs'),
