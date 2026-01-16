@@ -7,7 +7,7 @@ Live @ http://94.130.183.1:8005   (Couldn't get a domain name).
 
 🚀 Key Architecture
 
-The project is split into five decoupled services that communicate asynchronously using RabbitMQ and Celery:
+The project is split into six decoupled services that communicate asynchronously using RabbitMQ and Celery:
 
 🔐 Identity Service: The centralized authentication authority. It handles user registration, JWT issuance (with custom claim enrichment), and Role-Based Access Control (RBAC) for Customers and Staff.
 
@@ -19,14 +19,17 @@ The project is split into five decoupled services that communicate asynchronousl
 
 💻 Frontend Service: A user-facing web portal acting as a Backend-for-Frontend (BFF). It aggregates data from multiple microservices into a unified UI, handling session management and secure token storage.
 
+🕵️‍♂️ Fraud Service: An intelligent gatekeeper built with FastAPI. It performs synchronous, real-time anomaly detection on transaction requests using heuristic rules, rejecting suspicious activities before any funds are debited.
+
 
 🛠️ Tech Stack
 
-Framework: Python, Django, Django Rest Framework (DRF), Docker
+Framework: Python, Django (Core Services), FastAPI (Model Inference), Docker
 
 Infrastructure: Nginx (Gateway), RabbitMQ (Message Broker), Celery (Workers)
 
 Gateway: Nginx (Reverse Proxy)
+
 
 Security:
 
@@ -91,6 +94,12 @@ Start the celery worker. For example (Replace payment with the microservice app_
 
 ```bash
   celery -A payments worker -Q payment.internal -l info
+```
+
+For starting the FastAPI server (Fraud_service) after going to the dir
+
+```bash
+  uvicorn main:app --reload
 ```
 
 

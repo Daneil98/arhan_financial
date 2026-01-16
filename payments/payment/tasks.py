@@ -134,8 +134,8 @@ def consume_loan_updated(self, data):
     
     if debit_result.get("status") != "success":
         print(f"Debit Failed: {debit_result}")
-        PaymentRequest.objects.filter(payer_account_id=payer_id, amount=amount, 
-                                    status="PENDING").update(status="FAILED")
+        payment.status="FAILED"
+        payment.save()
         return
     
     #2. CREDIT THE BORROWER
@@ -143,8 +143,8 @@ def consume_loan_updated(self, data):
     
     if credit_result.get("status") != "success":
         print(f"Credit Failed (Need Refund Logic): {credit_result}")
-        PaymentRequest.objects.filter(payer_account_id=1, amount=amount, status="PENDING").update(status="FAILED_NEEDS_REFUND")
-        
+        payment.status="FAILED"
+        payment.save()
         #Transaction Reversal
         credit_bank(user_id, amount)      #Credit (Refund) the bank
         return
@@ -191,7 +191,7 @@ def loan_repayment(self, data):
         print("Loan has not been Approved")
         return 
     
-    PaymentRequest.objects.create(
+    payment = PaymentRequest.objects.create(
         payer_account_id = 1,
         payee_account_id = payee_id,
         amount=data['amount'],
@@ -201,13 +201,14 @@ def loan_repayment(self, data):
         # Store the task ID if needed later
     )
     
+    
     #1. DEBIT THE BANKPOOL
     debit_result = debit_account(user_id, payer_id, amount_to_repay)
     
     if debit_result.get("status") != "success":
         print(f"Debit Failed: {debit_result}")
-        PaymentRequest.objects.filter(payer_account_id=payer_id, amount=amount_to_repay, 
-                                    status="PENDING").update(status="FAILED")
+        payment.status="FAILED"
+        payment.save()
         return
     
     #2. CREDIT THE BORROWER
@@ -215,14 +216,14 @@ def loan_repayment(self, data):
     
     if credit_result.get("status") != "success":
         print(f"Credit Failed: {credit_result}")
-        PaymentRequest.objects.filter(payer_account_id=1, amount=amount_to_repay, status="PENDING").update(status="FAILED_NEEDS_REFUND")
+        payment.status="FAILED"
+        payment.save()
         credit_account(user_id, payer_id, amount_to_repay)  #Refund(credit) the user
         return
-    
+
     
     # Update DB
-    payment = PaymentRequest.objects.filter(payer_account_id=payer_id,
-                                        amount=amount_to_repay, status="PENDING").first()
+
     if payment:
         payment.status = "COMPLETED"
         payment.metadata = {'TYPE': 'LOAN REPAYMENT'}
@@ -268,17 +269,38 @@ def process_internal_transfer(self, data):
         if not pin_response.get("data", {}).get("validity", False):
             print(f"Invalid PIN for {payer_id}")
             # Mark Payment as FAILED
-            PaymentRequest.objects.filter(payer_account_id=payer_id, amount=amount, 
-                                        status="PENDING").update(status="FAILED")
+            payment.status="FAILED"
+            payment.save()
             return
 
+        # STEP 1.5: FRAUD CHECK
+        fraud_payload = {
+            "transaction_id": str(payment.id),
+            "user_id": str(user_id),
+            "amount": amount,
+            "currency": "NGN",
+            "timestamp": data.get("initiated_at_ts", 0)
+        }
+        
+        fraud_result = check_for_fraud(fraud_payload)
+        
+        if fraud_result.get("is_fraud"):
+            print(f"Transaction Rejected by Fraud Service: {fraud_result.get('reason')}")
+            
+            with transaction.atomic():
+                payment.status = "FAILED"
+                payment.metadata = f"Fraud: {fraud_result.get('reason')}"
+                payment.save()
+            return
+        
+        
         # 2. DEBIT PAYER (API CALL)
         debit_result = debit_account(user_id, payer_id, amount)
         
         if debit_result.get("status") != "success":
             print(f"Debit Failed: {debit_result}")
-            PaymentRequest.objects.filter(payer_account_id=payer_id, amount=amount, 
-                                        status="PENDING").update(status="FAILED")
+            payment.status="FAILED"
+            payment.save()
             return
 
         # 3. CREDIT PAYEE (API CALL)
@@ -287,7 +309,8 @@ def process_internal_transfer(self, data):
         if credit_result.get("status") != "success":
             print(f"Credit Failed: {credit_result}")
             
-            PaymentRequest.objects.filter(payer_account_id=payer_id, amount=amount, status="PENDING").update(status="FAILED_NEEDS_REFUND")
+            payment.status="FAILED"
+            payment.save()
             credit_account(user_id, payer_id, amount)   #Credit (Refund) the user
             return
 
@@ -353,17 +376,38 @@ def initiate_card_payment(self, data):
         
         if not card_data.get("validity", False):
             print(f"Invalid card details")
-            PaymentRequest.objects.filter(payer_account_id=payer_id, amount=amount, 
-                                            status="PENDING").update(status="FAILED")
+            payment.status="FAILED"
+            payment.save()
             return 
 
+        # STEP 1.5: FRAUD CHECK
+        fraud_payload = {
+            "transaction_id": str(payment.id),
+            "user_id": str(user_id),
+            "amount": amount,
+            "currency": "NGN",
+            "timestamp": data.get("initiated_at_ts", 0)
+        }
+        
+        fraud_result = check_for_fraud(fraud_payload)
+        
+        if fraud_result.get("is_fraud"):
+            print(f"Transaction Rejected by Fraud Service: {fraud_result.get('reason')}")
+            
+            with transaction.atomic():
+                payment.status = "FAILED"
+                payment.metadata = f"Fraud: {fraud_result.get('reason')}"
+                payment.save()
+            return
+        
+        
         # 2. DEBIT PAYER (API CALL)
         debit_result = debit_account(user_id, payer_id, amount)
         
         if debit_result.get("status") != "success":
             print(f"Debit Failed: {debit_result}")
-            PaymentRequest.objects.filter(payer_account_id=payer_id, amount=amount, 
-                                        status="PENDING").update(status="FAILED")                                               
+            payment.status="FAILED"
+            payment.save()                                             
             return
 
 
@@ -372,8 +416,8 @@ def initiate_card_payment(self, data):
         
         if credit_result.get("status") != "success":
             print(f"Credit Failed: {credit_result}")
-            PaymentRequest.objects.filter(payer_account_id=payer_id, amount=amount, 
-                                        status="PENDING").update(status="FAILED_NEEDS_REFUND")
+            payment.status="FAILED"
+            payment.save()
             credit_account(user_id, payer_id, amount)   #Credit (Refund) the user
             return
 

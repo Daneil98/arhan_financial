@@ -5,14 +5,15 @@ import datetime
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from django.conf import settings
+import time
 
 ACCOUNT_SERVICE_BASE_URL = 'http://account:8002'   # Docker internal
+FRAUD_SERVICE_BASE_URL = 'http://fraud:8006'    #Docker internal
 
 
+# 1. SETUP PERSISTENT SESSION 
+# This opens a connection pool. The first call takes 100ms, but the next calls (Debit/Credit) take ~10ms.
 
-# 1. SETUP PERSISTENT SESSION (The Speed Fix)
-# This opens a connection pool. The first call takes 100ms, 
-# but the next calls (Debit/Credit) take ~10ms.
 def get_session():
     session = requests.Session()
     
@@ -24,9 +25,62 @@ def get_session():
     return session
 
 
-# Initialize it once when the worker starts
-# (Each Celery worker process will have its own session)
+# Initialize it once when the worker starts (Each Celery worker process will have its own session)
 account_service_session = get_session()
+
+fraud_service_session = get_session()
+
+
+def check_for_fraud(transaction_data):
+    """
+    Calls the FastAPI Fraud Microservice synchronously.
+    
+    Args:
+        transaction_data (dict): Dictionary containing:
+            - transaction_id (str)
+            - user_id (str)
+            - amount (float/str)
+            - account_type (str)
+            - currency (str)
+            - timestamp (float, optional)
+
+    Returns:
+        dict: {
+            "is_fraud": bool, 
+            "risk_score": float, 
+            "reason": str
+        }
+    """
+    url = f"{FRAUD_SERVICE_BASE_URL}/check/"
+    
+    # Prepare payload conformant to FastAPI schema
+    payload = {
+        "transaction_id": str(transaction_data.get("transaction_id", "unknown")),
+        "user_id": str(transaction_data.get("user_id", "unknown")),
+        "amount": float(transaction_data.get("amount", 0.0)),
+        "currency": str(transaction_data.get("currency", "NGN")),
+        "timestamp": float(transaction_data.get("timestamp", time.time()))
+    }
+    
+    try:
+        # Short timeout because we don't want to block the payment flow for long
+        response = requests.post(url, json=payload, timeout=2) 
+        
+        if response.status_code == 200:
+            return response.json() 
+        
+        print(f"Fraud Service Error {response.status_code}: {response.text}")
+        # Fail Open: If service errors, we assume it's NOT fraud to avoid blocking legitimate users
+        return {"is_fraud": False, "risk_score": 0.0, "reason": "Service Error (Fail Open)"}
+        
+    except requests.exceptions.ConnectionError:
+        print(f"Fraud Service Unreachable at {url}")
+        return {"is_fraud": False, "risk_score": 0.0, "reason": "Service Unreachable"}
+        
+    except Exception as e:
+        print(f"Fraud Check Failed: {e}")
+        return {"is_fraud": False, "risk_score": 0.0, "reason": f"Client Error: {str(e)}"}
+
 
 def generate_service_token(user_id):
     """
