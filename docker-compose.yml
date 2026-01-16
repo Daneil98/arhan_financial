@@ -189,7 +189,6 @@ services:
   # --- 6. Fraud Service (fraud_service) ---
   fraud:
     build: ./fraud_service
-    env_file:
     command: uvicorn app.main:app --host 0.0.0.0 --port 8006 --reload
     volumes:
       - ./fraud_service:/app
