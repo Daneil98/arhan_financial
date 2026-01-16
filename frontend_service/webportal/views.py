@@ -79,7 +79,7 @@ def login_view(request):
 
                     if not access_token:
                         messages.error(request, "Login successful but server returned no token.")
-                        print(f"[❌] API Response missing token: {data.keys()}")
+                        print(f" API Response missing token: {data.keys()}")
                         return render(request, 'registration/login.html', {'form': form})
 
                     # STANDARDIZED SESSION KEYS

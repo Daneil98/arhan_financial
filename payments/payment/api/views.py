@@ -47,10 +47,6 @@ class InternalTransferAPIView(APIView):
                     "initiated_at_ts": start_time
                 }
                 
-                # Create the Pending Transaction Record HERE (Before Celery)
-                # This ensures you have a record even if Celery crashes immediately
-
-                
                 # Fire and forget
                 transaction.on_commit(lambda: process_internal_transfer.apply_async(args=[data]))
 
@@ -112,9 +108,7 @@ class TransferHistory(APIView):
         user_id = request.user.id 
         acc = get_object_or_404(PaymentAccount, user_id=user_id)
         number = acc.account_number
-        payments = PaymentRequest.objects.filter(
-            (Q(payer_account_id=number) | Q(payee_account_id=number)) & Q(status='COMPLETED')
-        ).order_by('-created_at')   
+        payments = PaymentRequest.objects.order_by('-created_at')
 
         history_data = [] 
 
