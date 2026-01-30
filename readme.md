@@ -3,7 +3,22 @@
 A Dockerized scalable, event-driven banking platform built using Docker, Django and a Microservices Architecture. The system simulates core banking operations including account management, secure funds transfer (via transfers, card payments or loans), card processing, and double-entry bookkeeping, orchestrated via an Nginx API Gateway.
 
 
-Live @ http://94.130.183.1:8005   (Couldn't get a domain name).
+Live @ http://94.130.183.1:8005
+
+## PROJECT SCREENSHOTS
+
+#### Homepage
+<img width="1914" height="940" alt="Screenshot 2025-12-25 011213" src="https://github.com/user-attachments/assets/2d4a073b-5f50-4a17-9a7c-97366c39e89b" />
+
+#### Login Page
+
+<img width="1917" height="942" alt="Screenshot 2025-12-25 011331" src="https://github.com/user-attachments/assets/11fd1238-c9bc-451b-86c5-c6aef80de5f0" />
+
+#### Dashboard
+
+<img width="1919" height="939" alt="Screenshot 2025-12-31 143432" src="https://github.com/user-attachments/assets/408ad6d9-1260-4a8f-90b2-23a83094fbf8" />
+
+
 
 🚀 Key Architecture
 
@@ -169,4 +184,5 @@ JWT_SHARED_SECRET: python -c "import secrets; print(secrets.token_hex(32))"
 
 
 ENCRYPTION_KEY: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+
 
