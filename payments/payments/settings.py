@@ -39,7 +39,7 @@ JWT_SHARED_SECRET = os.environ.get('JWT_SHARED_SECRET', "fallback-secret-change-
 SIMPLE_JWT = {
     'SIGNING_KEY': JWT_SHARED_SECRET,
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=15), 
+    'REFRESH_TOKEN_LIFETIME': timedelta(hours=24), 
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
     # Ensure this model exists if using DB auth, or switch to Stateless pattern
