@@ -32,9 +32,11 @@ jobs:
           echo "Pulling latest code..."
           git pull origin master
           
-          echo "Rebuilding and Restarting Containers..."
-          # We use the specific file to be safe
-          docker compose up --build -d
+          echo "Building images first..."
+          docker compose build
+          
+          echo "Starting containers..."
+          docker compose up -d
           
           echo "Cleaning up unused images..."
           docker image prune -f
