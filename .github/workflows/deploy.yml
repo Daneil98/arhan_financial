@@ -23,6 +23,7 @@ jobs:
         username: ${{ secrets.USERNAME }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
+          # Stop if any command fails
           set -e
           
           echo "Navigating to project folder..."
@@ -31,13 +32,11 @@ jobs:
           echo "Pulling latest code..."
           git pull origin master
           
-          echo "Building images first..."
-          docker compose build
+          echo "Rebuilding and Restarting Containers..."
+          # We use the specific file to be safe
+          docker compose up -d --build
           
-          echo "Starting containers..."
-          docker compose up -d
-          
-          echo "Cleaning up..."
+          echo "Cleaning up unused images..."
           docker image prune -f
           
-          echo "SUCCESS: Deployment Complete!"
+          echo "Deployment Complete!"
