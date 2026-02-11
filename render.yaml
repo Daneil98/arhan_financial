@@ -15,9 +15,9 @@ services:
       - key: DATABASE_URL
         sync: false
       - key: CELERY_BROKER_URL
-        sync: false # You will paste CloudAMQP URL in dashboard
+        sync: false 
       - key: JWT_SHARED_SECRET_KEY
-        sync: false # You will paste your shared secret
+        sync: false 
     plan: free
 
   - type: worker
