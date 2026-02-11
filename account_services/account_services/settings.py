@@ -37,7 +37,6 @@ if not ENCRYPTION_KEY and not DEBUG:
     print("WARNING: ENCRYPTION_KEY is missing. Card operations will fail.")
 
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "*").split(",")
-CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",")
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Enforce Secure Cookies (Browser will only send them over HTTPS)

@@ -31,7 +31,6 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-fallback-key')
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "*").split(",")
-CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",")
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Enforce Secure Cookies (Browser will only send them over HTTPS)
@@ -42,6 +41,7 @@ CSRF_COOKIE_SECURE = True
 CSRF_TRUSTED_ORIGINS = [
     'https://arhan-financial.duckdns.org',
 ]
+
 # ==========================================
 # 2. AUTHENTICATION & JWT
 # ==========================================
@@ -206,7 +206,3 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 
-# 2. Since you aren't using HTTPS yet, ensure these are False
-CSRF_COOKIE_SECURE = False
-SESSION_COOKIE_SECURE = False
-CSRF_COOKIE_HTTPONLY = False

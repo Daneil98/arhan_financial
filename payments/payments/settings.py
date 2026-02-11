@@ -29,7 +29,6 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-fallback-key')
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "*").split(",")
-CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",")
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Enforce Secure Cookies (Browser will only send them over HTTPS)
@@ -189,14 +188,3 @@ USE_I18N = True
 USE_TZ = True
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-CSRF_TRUSTED_ORIGINS = [
-    '[http://94.130.183.1](http://94.130.183.1)',
-    'http://localhost',
-    
-]
-
-# 2. Since you aren't using HTTPS yet, ensure these are False
-CSRF_COOKIE_SECURE = False
-SESSION_COOKIE_SECURE = False
-CSRF_COOKIE_HTTPONLY = False
