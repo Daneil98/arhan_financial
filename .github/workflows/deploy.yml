@@ -34,7 +34,7 @@ jobs:
           
           echo "Rebuilding and Restarting Containers..."
           # We use the specific file to be safe
-          docker compose up -d --build
+          docker-compose up --build -d
           
           echo "Cleaning up unused images..."
           docker image prune -f
