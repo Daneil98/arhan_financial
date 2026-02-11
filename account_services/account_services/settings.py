@@ -46,6 +46,8 @@ CSRF_COOKIE_SECURE = True
 # CSRF Trusted Origins (Vital for POST requests)
 CSRF_TRUSTED_ORIGINS = [
     'https://arhan-financial.duckdns.org',
+    '[http://94.130.183.1](http://94.130.183.1)',
+    'http://localhost',
 ]
 
 # ==========================================
