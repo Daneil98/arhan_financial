@@ -323,10 +323,12 @@ def process_internal_transfer(self, data):
         payment.status = "COMPLETED"
         payment.metadata = {'TYPE': 'USER INTERNAL TRANSFER'}
         payment.processed_at = datetime.now()
-        payment.save() 
-    except:
-        # If not found, Retry in 1 second, for handling race conditions
-        print(f"Payment record not found yet. Retrying...")
+        payment.save()
+    except PaymentRequest.DoesNotExist:
+        # The payment row may not be visible yet if the producing
+        # transaction hasn't committed. Retry briefly for that race only;
+        # any other error must surface instead of being silently retried.
+        print(f"Payment record {payment_id} not found yet. Retrying...")
         raise self.retry(countdown=1, max_retries=5)
 
 
@@ -433,12 +435,14 @@ def initiate_card_payment(self, data):
         payment.status = "COMPLETED"
         payment.payer_account_id = payer_id
         payment.metadata = {'TYPE': 'USER CARD PAYMENT'}
-        payment.processed_at = datetime.now()    
+        payment.processed_at = datetime.now()
         payment.save()
-        
-    except:
-        # If not found, Retry in 1 second, for handling race conditions
-        print(f"Payment record not found yet. Retrying...")
+
+    except PaymentRequest.DoesNotExist:
+        # The payment row may not be visible yet if the producing
+        # transaction hasn't committed. Retry briefly for that race only;
+        # any other error must surface instead of being silently retried.
+        print(f"Payment record {payment_id} not found yet. Retrying...")
         raise self.retry(countdown=1, max_retries=5)
     
 

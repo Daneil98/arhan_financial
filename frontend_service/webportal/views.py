@@ -245,7 +245,7 @@ def dashboard_view(request):
                     try:
                         dt = datetime.fromisoformat(raw_date.replace('Z', '+00:00'))
                         t['date'] = dt.strftime('%b %d, %I:%M %p')
-                    except:
+                    except (ValueError, AttributeError):
                         pass
 
         dashboard_data.update({
@@ -512,8 +512,8 @@ def create_ticket_view(request):
             else:
                 # Try to get specific error message from API
                 try:
-                    err = response.json().get('error', 'TThere was a problem creating that ticket!')
-                except:
+                    err = response.json().get('error', 'There was a problem creating that ticket!')
+                except ValueError:
                     err = "There was a problem creating that ticket!"
                 messages.error(request, err)
     else:
@@ -550,7 +550,7 @@ def internal_transfer_view(request):
                 # Try to get specific error message from API
                 try:
                     err = response.json().get('error', 'Transfer failed')
-                except:
+                except ValueError:
                     err = "Transfer failed"
                 messages.error(request, err)
         else:
@@ -586,7 +586,7 @@ def card_payment_view(request):
                 # Try to get specific error message from API
                 try:
                     err = response.json().get('error', 'Transfer failed')
-                except:
+                except ValueError:
                     err = "Transfer failed"
                 messages.error(request, err)
         else:
