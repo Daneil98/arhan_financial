@@ -40,7 +40,7 @@ services:
     build: ./arhan_financial
     env_file:
       - ./.env
-    command: sh -c "python manage.py migrate --noinput && python manage.py runserver 0.0.0.0:8001"
+    command: sh -c "python manage.py migrate --noinput || echo 'MIGRATE FAILED (continuing)'; python manage.py runserver 0.0.0.0:8001"
     volumes:
       - ./arhan_financial:/app
       - ./arhan_financial/Identity_service.sqlite3:/identity/Identity_service.sqlite3
@@ -184,7 +184,7 @@ services:
     build: ./frontend_service
     env_file:
       - ./.env
-    command: sh -c "python manage.py migrate --noinput && python manage.py collectstatic --noinput && python manage.py runserver 0.0.0.0:8005"
+    command: sh -c "python manage.py migrate --noinput || echo 'MIGRATE FAILED (continuing)'; python manage.py collectstatic --noinput || echo 'COLLECTSTATIC FAILED (continuing)'; python manage.py runserver 0.0.0.0:8005"
     volumes:
       - ./frontend_service:/app
       - ./frontend_service/frontend_service.sqlite3:/frontend/frontend_service.sqlite3
