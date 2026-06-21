@@ -33,10 +33,11 @@ jobs:
           git pull origin master
           
           echo "Rebuilding and Restarting Containers..."
-          # We use the specific file to be safe
-          docker-compose up -d --build
-          
+          # --remove-orphans drops containers no longer in the compose file
+          # (e.g. the old rabbitmq) without taking the stack down.
+          docker-compose up -d --build --remove-orphans
+
           echo "Cleaning up unused images..."
-          docker-compose down --remove-orphans
-          
+          docker image prune -f
+
           echo "Deployment Complete!"
