@@ -132,22 +132,10 @@ def customer_register_view(request):
             }
             
             client = IdentityClient()
-            try:
-                response = client.customer_register(data)
-            except Exception as e:
-                print(f"Register Exception: {e}")
-                messages.error(request, "Service unavailable. Please try again shortly.")
-                return render(request, 'customer_webportal/register.html', {'form': form})
-
+            response = client.customer_register(data)
+            
             if response.status_code == 201 or response.status_code == 200:
-                # Mirror the user locally. get_or_create + try/except so a retry
-                # or locked DB can't 500 a signup that already succeeded upstream.
-                try:
-                    User.objects.get_or_create(
-                        username=data["username"], defaults={"role": "customer"}
-                    )
-                except Exception as e:
-                    print(f"Local user mirror failed (non-critical): {e}")
+                User.objects.create(username=data["username"], role="customer")
                 messages.success(request, "Registration successful! Please login.")
                 return redirect('login')
             else:
@@ -245,7 +233,7 @@ def dashboard_view(request):
                     try:
                         dt = datetime.fromisoformat(raw_date.replace('Z', '+00:00'))
                         t['date'] = dt.strftime('%b %d, %I:%M %p')
-                    except (ValueError, AttributeError):
+                    except:
                         pass
 
         dashboard_data.update({
@@ -512,8 +500,8 @@ def create_ticket_view(request):
             else:
                 # Try to get specific error message from API
                 try:
-                    err = response.json().get('error', 'There was a problem creating that ticket!')
-                except ValueError:
+                    err = response.json().get('error', 'TThere was a problem creating that ticket!')
+                except:
                     err = "There was a problem creating that ticket!"
                 messages.error(request, err)
     else:
@@ -550,7 +538,7 @@ def internal_transfer_view(request):
                 # Try to get specific error message from API
                 try:
                     err = response.json().get('error', 'Transfer failed')
-                except ValueError:
+                except:
                     err = "Transfer failed"
                 messages.error(request, err)
         else:
@@ -586,7 +574,7 @@ def card_payment_view(request):
                 # Try to get specific error message from API
                 try:
                     err = response.json().get('error', 'Transfer failed')
-                except ValueError:
+                except:
                     err = "Transfer failed"
                 messages.error(request, err)
         else:

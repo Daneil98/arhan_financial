@@ -62,78 +62,71 @@ class CustomerRegisterView(APIView):
 
 class CustomerRegisterView(APIView):
     permission_classes = [AllowAny]  # Allow unrestricted access
-    throttle_classes = []  # Don't rate-limit signups: all requests arrive from
-                           # the single frontend-container IP, so a shared anon
-                           # throttle would block every user after the limit.
     queryset = user.objects.all()
-
+    
     def post(self, request):
         serializer = CustomerIdentitySerializer(data=request.data)
         serializer.is_valid(raise_exception=True)  # Validate the data
 
         # Check if email exists in username or email fields
         if user.objects.filter(username=serializer.validated_data['username']).exists():
-            return Response({'status': 'failed', 'message': 'This username is already taken'}, status=status.HTTP_400_BAD_REQUEST)
-
+            serializer.add_error('message', 'This username is already taken')
+            return Response({'status': 'failed', 'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+            
         if user.objects.filter(email=serializer.validated_data['email']).exists():
-            return Response({'status': 'failed', 'message': 'This email is already taken'}, status=status.HTTP_400_BAD_REQUEST)
-
+            serializer.add_error('message', 'This email is already taken')
+            return Response({'status': 'failed', 'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        
         # Save the user (handled by the serializer)
         user_info = serializer.create(serializer.validated_data)
-
+ 
         user_data = {
             'username': str(user_info.username),
             "id": str(user_info.id),
             "email": str(user_info.email)
         }
-        # Publish the 'customer created' event. The user is already saved, so a
-        # broker hiccup must NOT fail the signup — log and continue.
-        try:
-            publish_customer_created.apply_async(args=[user_data])
-        except Exception as exc:
-            print(f"Failed to publish customer.created event (non-critical): {exc}")
-
+        # Create a profile for the user
+        #user.objects.create(user=user)
+        publish_customer_created.apply_async(args=[user_data])
+        
         return Response({'status': 'success', 'message': 'Account created successfully'}, status=status.HTTP_201_CREATED)
 
 
 
 class StaffRegisterView(APIView):
     permission_classes = [AllowAny]  # Allow unrestricted access
-    throttle_classes = []  # See CustomerRegisterView: signups share one IP.
     queryset = user.objects.all()
-
+    
     def post(self, request):
         serializer = CustomerIdentitySerializer(data=request.data)
         serializer.is_valid(raise_exception=True)  # Validate the data
 
         # Check if email exists in username or email fields
         if user.objects.filter(username=serializer.validated_data['username']).exists():
-            return Response({'status': 'failed', 'message': 'This username is already taken'}, status=status.HTTP_400_BAD_REQUEST)
-
+            serializer.add_error('message', 'This username is already taken')
+            return Response({'status': 'failed', 'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+            
         if user.objects.filter(email=serializer.validated_data['email']).exists():
-            return Response({'status': 'failed', 'message': 'This email is already taken'}, status=status.HTTP_400_BAD_REQUEST)
-
+            serializer.add_error('message', 'This email is already taken')
+            return Response({'status': 'failed', 'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        
         # Save the user (handled by the serializer)
         user_info = serializer.create(serializer.validated_data)
-
+ 
         user_data = {
             'username': str(user_info.username),
             "id": str(user_info.id),
             "email": str(user_info.email)
         }
-        # Publish the 'staff created' event. The user is already saved, so a
-        # broker hiccup must NOT fail the signup — log and continue.
-        try:
-            publish_staff_created.apply_async(args=[user_data])
-        except Exception as exc:
-            print(f"Failed to publish staff.created event (non-critical): {exc}")
-
+        # Create a profile for the user
+        #user.objects.create(user=user)
+        publish_staff_created.apply_async(args=[user_data])
+        
         return Response({'status': 'success', 'message': 'Account created successfully'}, status=status.HTTP_201_CREATED)
 
 class LoginView(APIView):
     permission_classes = [AllowAny]  # Allow unrestricted access
-    throttle_classes = []  # See CustomerRegisterView: logins share one IP.
-    queryset = user.objects.all()
+    queryset = user.objects.all()  
     serializer_class = LoginSerializer
 
 

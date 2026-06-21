@@ -112,3 +112,6 @@ def ticket_updated_handler(sender, instance, **kwargs):
             "updated_at": instance.last_login.isoformat() if instance.last_login else None,
         }
         publish_ticket_updated.delay(ticket_data)
+
+
+love =5

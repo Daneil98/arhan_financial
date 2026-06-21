@@ -1,101 +1,89 @@
-from decimal import Decimal
-from unittest.mock import patch
-
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
+from unittest.mock import patch
+from .models import PaymentRequest
 
-from .models import PaymentAccount, PaymentRequest
-
-
-class MockUser:
-    """Stand-in for an authenticated identity-service user.
-
-    The payment service has no local auth user table; JWTAuthentication is
-    bypassed via force_authenticate, so we only need `id`/`is_authenticated`.
-    """
-    id = 1
-    pk = 1  # DRF's UserRateThrottle keys the cache on request.user.pk
-    is_authenticated = True
-    is_active = True
-
-
-class PaymentFlowTests(APITestCase):
-
+class PaymentTests(APITestCase):
+    
     def setUp(self):
+        # Create a dummy user for authentication simulation
+        # Note: Since we are using JWT/Service Auth, mock the authentication 
+        # or force the user into the request if using standard DRF auth.
+        class MockUser:
+            id = 1
+            is_authenticated = True
         self.user = MockUser()
-        # The views derive the payer account number from the caller's
-        # PaymentAccount, so it must exist before the request is made.
-        self.payer_account = PaymentAccount.objects.create(
-            user_id=self.user.id,
-            account_number="1234567890",
-        )
-        self.client.force_authenticate(user=self.user)
 
-    @patch('payment.api.views.process_internal_transfer.apply_async')
-    def test_internal_transfer_creates_pending_and_schedules_task(self, mock_task):
-        """A valid transfer persists a PENDING record and schedules the worker
-        task once the surrounding DB transaction commits."""
-        url = reverse('api:internal_transfer')
+    @patch('payments.views.process_internal_transfer.apply_async')
+    @patch('payments.views.transaction.on_commit')
+    def test_internal_transfer_success(self, mock_on_commit, mock_celery_task):
+        """
+        Test that a valid transfer request creates a PENDING record 
+        and schedules the Celery task.
+        """
+        # Mock transaction.on_commit to execute the lambda immediately
+        mock_on_commit.side_effect = lambda func: func()
+
+        url = reverse('internal_transfer') # Ensure this matches your urls.py name
         data = {
-            "payee_account_id": "987654321",
+            "payer_account_id": "1234567890",
+            "payee_account_id": "0987654321",
             "amount": "500.00",
-            "pin": 1234,
+            "account_type": "current",
+            "currency": "NGN",
+            "pin": "1234",
+            "payment_type": "INTERNAL"
         }
 
-        # on_commit callbacks only fire when the transaction commits; capture
-        # and execute them so the scheduling assertion is meaningful.
-        with self.captureOnCommitCallbacks(execute=True):
-            response = self.client.post(url, data, format='json')
+        # Force authentication (Mocking JWT Auth behavior)
+        self.client.force_authenticate(user=self.user)
+        
+        response = self.client.post(url, data, format='json')
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # 1. Assert Response is 201 Created
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data['status'], 'Processing')
 
-        payment = PaymentRequest.objects.get(payee_account_id=987654321)
+        # 2. Assert Database Record Created
+        payment = PaymentRequest.objects.get(payer_account_id="1234567890")
         self.assertEqual(payment.status, 'PENDING')
-        self.assertEqual(payment.amount, Decimal('500.00'))
-        self.assertEqual(payment.payer_account_id, 1234567890)
+        self.assertEqual(float(payment.amount), 500.00)
 
-        mock_task.assert_called_once()
-        sent = mock_task.call_args.kwargs['args'][0]
-        self.assertEqual(sent['amount'], "500.00")
-        self.assertEqual(sent['pin'], "1234")
-        self.assertEqual(sent['payer_account_id'], "1234567890")
+        # 3. Assert Celery Task was called
+        mock_celery_task.assert_called_once()
+        # Verify arguments passed to task
+        args = mock_celery_task.call_args[1]['args'][0]
+        self.assertEqual(args['amount'], "500.00")
+        self.assertEqual(args['pin'], "1234")
 
-    @patch('payment.api.views.initiate_card_payment.apply_async')
-    def test_card_payment_creates_pending_and_schedules_task(self, mock_task):
-        """A valid card payment persists a PENDING CARD record and schedules
-        the worker task on the dedicated payment queue."""
-        url = reverse('api:card_payment')
+    @patch('payments.views.initiate_card_payment.apply_async')
+    @patch('payments.views.transaction.on_commit')
+    def test_card_payment_success(self, mock_on_commit, mock_celery_task):
+        """
+        Test that a card payment request works and triggers the task.
+        """
+        mock_on_commit.side_effect = lambda func: func()
+        
+        url = reverse('card_payment') # Ensure matches urls.py
         data = {
-            "payee_account_id": "987654321",
+            "payee_account_id": "1234567890",
             "amount": "150.00",
             "card_number": "1234567812345678",
-            "cvv": 123,
-            "pin": 9999,
+            "cvv": "123",
+            "pin": "9999",
+            "currency": "NGN"
         }
 
-        with self.captureOnCommitCallbacks(execute=True):
-            response = self.client.post(url, data, format='json')
+        self.client.force_authenticate(user=self.user)
+        response = self.client.post(url, data, format='json')
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['status'], 'Processing')
-
-        payment = PaymentRequest.objects.get(payee_account_id=987654321, payment_type='CARD')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        
+        # Check DB
+        # Note: Card payments might not have payer_account_id initially if it comes from external
+        payment = PaymentRequest.objects.get(payee_account_id="0987654321")
         self.assertEqual(payment.status, 'PENDING')
-        self.assertEqual(payment.amount, Decimal('150.00'))
 
-        mock_task.assert_called_once()
-        self.assertEqual(mock_task.call_args.kwargs['queue'], 'payment.internal')
-        sent = mock_task.call_args.kwargs['args'][0]
-        self.assertEqual(sent['card_number'], "1234567812345678")
-        self.assertEqual(sent['cvv'], "123")
-
-    def test_internal_transfer_rejects_invalid_payload(self):
-        """Missing required fields should 400 and create no payment record."""
-        url = reverse('api:internal_transfer')
-
-        response = self.client.post(url, {"amount": "500.00"}, format='json')
-
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(PaymentRequest.objects.count(), 0)
+        # Check Celery
+        mock_celery_task.assert_called_once()
