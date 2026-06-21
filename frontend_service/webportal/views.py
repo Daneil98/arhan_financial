@@ -132,10 +132,22 @@ def customer_register_view(request):
             }
             
             client = IdentityClient()
-            response = client.customer_register(data)
-            
+            try:
+                response = client.customer_register(data)
+            except Exception as e:
+                print(f"Register Exception: {e}")
+                messages.error(request, "Service unavailable. Please try again shortly.")
+                return render(request, 'customer_webportal/register.html', {'form': form})
+
             if response.status_code == 201 or response.status_code == 200:
-                User.objects.create(username=data["username"], role="customer")
+                # Mirror the user locally. get_or_create + try/except so a retry
+                # or locked DB can't 500 a signup that already succeeded upstream.
+                try:
+                    User.objects.get_or_create(
+                        username=data["username"], defaults={"role": "customer"}
+                    )
+                except Exception as e:
+                    print(f"Local user mirror failed (non-critical): {e}")
                 messages.success(request, "Registration successful! Please login.")
                 return redirect('login')
             else:

@@ -16,20 +16,20 @@ class IdentityClient:
     def login(self, username, password):
         """Calls Identity Service to get JWT"""
         url = f"{IDENTITY_URL}/Identity_service_api/login/"
-        response = requests.post(url, json={"username": username, "password": password}, headers=self.headers)
+        response = requests.post(url, json={"username": username, "password": password}, headers=self.headers, timeout=10)
         return response  # Let view handle status codes
-    
+
     def logout(self, data):
         url = f"{IDENTITY_URL}/Identity_service_api/logout/"
-        return requests.post(url, json=data, headers=self.headers)
-    
+        return requests.post(url, json=data, headers=self.headers, timeout=10)
+
     def customer_register(self, data):
         url = f"{IDENTITY_URL}/Identity_service_api/customer_register/"
-        return requests.post(url, json=data, headers=self.headers)
+        return requests.post(url, json=data, headers=self.headers, timeout=10)
 
     def staff_register(self, data):
         url = f"{IDENTITY_URL}/Identity_service_api/staff_register/"
-        return requests.post(url, json=data, headers=self.headers)  
+        return requests.post(url, json=data, headers=self.headers, timeout=10)
 
 
 class AccountClient:   

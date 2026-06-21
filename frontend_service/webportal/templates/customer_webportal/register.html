@@ -24,7 +24,11 @@
         background: #F9FAFB;
         display: flex;
         flex-direction: column;
-        justify-content: center;
+        /* NOT justify-content: center — that makes the top of an overflowing
+           form unreachable. Centering is done via margin:auto on the inner
+           wrapper below, which stays scrollable when the form is taller than
+           the screen. flex-start overrides the same rule in base.css. */
+        justify-content: flex-start;
     }
 
     .signup-header { margin-bottom: 30px; text-align: center; }
@@ -102,7 +106,7 @@
     </div>
 
     <div class="right-pane-form">
-        <div style="max-width: 500px; margin: 0 auto; width: 100%;">
+        <div style="max-width: 500px; margin: auto; width: 100%;">
             
             <div class="signup-header">
                 <h1>Create Account</h1>
