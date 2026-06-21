@@ -15,6 +15,50 @@
 </head>
 <body>
 
+    {% comment %} Global flash messages (login, register, etc. extend this base) {% endcomment %}
+    {% if messages %}
+        <div id="message-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999;">
+            {% for message in messages %}
+                <div class="alert-box {% if message.tags == 'error' %}alert-danger{% else %}alert-success{% endif %}"
+                    style="min-width: 300px; padding: 15px 20px; margin-bottom: 10px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: space-between; animation: slideIn 0.3s ease-out;">
+
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        {% if message.tags == 'error' %}
+                            <i class="fas fa-exclamation-circle" style="font-size: 1.2rem;"></i>
+                        {% else %}
+                            <i class="fas fa-check-circle" style="font-size: 1.2rem;"></i>
+                        {% endif %}
+
+                        <span style="font-weight: 500; font-size: 0.95rem;">{{ message }}</span>
+                    </div>
+
+                    <span onclick="this.parentElement.style.display='none'" style="cursor: pointer; opacity: 0.6; margin-left: 15px;">&times;</span>
+                </div>
+            {% endfor %}
+        </div>
+
+        <style>
+            .alert-danger { background-color: #FEF2F2; color: #DC2626; border-left: 5px solid #DC2626; }
+            .alert-success { background-color: #ECFDF5; color: #059669; border-left: 5px solid #059669; }
+
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+        </style>
+
+        <script>
+            setTimeout(function() {
+                const container = document.getElementById('message-container');
+                if (container) {
+                    container.style.transition = "opacity 0.5s";
+                    container.style.opacity = "0";
+                    setTimeout(() => container.remove(), 500);
+                }
+            }, 5000);
+        </script>
+    {% endif %}
+
     {% block layout %}
     {% endblock %}
 

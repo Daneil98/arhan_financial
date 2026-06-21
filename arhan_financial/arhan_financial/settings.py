@@ -30,17 +30,17 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-fallback-key')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "*").split(",")
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "94.130.183.1,94.130.183.1.nip.io,arhan-financial.duckdns.org,localhost,identity,account,payments,ledger,frontend,gateway").split(",")
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Enforce Secure Cookies (Browser will only send them over HTTPS)
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'False') == 'True'
+CSRF_COOKIE_SECURE = os.environ.get('CSRF_COOKIE_SECURE', 'False') == 'True'
 
 # CSRF Trusted Origins (Vital for POST requests)
 CSRF_TRUSTED_ORIGINS = [
     'https://arhan-financial.duckdns.org',
-    '[http://94.130.183.1](http://94.130.183.1)',
+    'http://94.130.183.1',
     'http://localhost',
     'http://identity',
     'http://gateway',
@@ -140,7 +140,7 @@ DATABASES = {
 }
 
 # Celery Config
-CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'amqp://guest:guest@localhost:5672/')
+CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'amqp://guest:guest@rabbitmq:5672//')
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
@@ -203,7 +203,7 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend' if DEBUG else '
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CSRF_TRUSTED_ORIGINS = [
-    '[http://94.130.183.1](http://94.130.183.1)',
+    'http://94.130.183.1',
     'http://localhost',
     'http://identity',
     'http://gateway',

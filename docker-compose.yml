@@ -1,7 +1,5 @@
-version: '3.8'
-
 services:
-  gateway: 
+  gateway:
     image: nginx:stable-alpine
     container_name: gateway
     ports:
@@ -26,28 +24,23 @@ services:
       - ./certbot/conf:/etc/letsencrypt
       - ./certbot/www:/var/www/certbot
 
-  # --- Message Broker ---
+  # --- Message Broker (local, internal-only) ---
+  # No host ports are published, so it is only reachable on the internal
+  # arhan-network (services connect via amqp://guest:guest@rabbitmq:5672//).
   rabbitmq:
-    image: rabbitmq:3-management
-    ports:
-      - "5672:5672"   # Main port
-      - "15672:15672" # Management UI
+    image: rabbitmq:3-alpine
     networks:
       - arhan-network
+    restart: always
 
   # --- 1. Identity Service (arhan_financial) ---
   identity:
     build: ./arhan_financial
-    env_file:
-      - ./.env
     command: sh -c "python manage.py migrate --noinput || echo 'MIGRATE FAILED (continuing)'; python manage.py runserver 0.0.0.0:8001"
     volumes:
       - ./arhan_financial:/app
-      - ./arhan_financial/Identity_service.sqlite3:/identity/Identity_service.sqlite3
     ports:
       - "8001:8001"
-    environment:
-      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
     depends_on:
       - rabbitmq
     networks:
@@ -55,14 +48,9 @@ services:
 
   identity_worker:
     build: ./arhan_financial
-    env_file:
-      - ./.env
     command: celery -A arhan_financial worker -l info
     volumes:
       - ./arhan_financial:/app
-      - ./arhan_financial/Identity_service.sqlite3:/identity/Identity_service.sqlite3
-    environment:
-      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
     depends_on:
       - rabbitmq
       - identity
@@ -72,16 +60,12 @@ services:
   # --- 2. Account Service (account_services) ---
   account:
     build: ./account_services
-    env_file:
-      - ./.env
     command: python manage.py runserver 0.0.0.0:8002
     volumes:
       - ./account_services:/app
-      - ./account_services/account_service.sqlite3:/account/account_service.sqlite3
     ports:
       - "8002:8002"
     environment:
-      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
       - IDENTITY_SERVICE_URL=http://identity:8001
     depends_on:
       - rabbitmq
@@ -90,15 +74,9 @@ services:
 
   account_worker:
     build: ./account_services
-    env_file:
-      - ./.env
-    # Note: Using the event router configuration we discussed
     command: celery -A account_services worker -Q account_service.internal,celery -l info
     volumes:
       - ./account_services:/app
-      - ./account_services/account_service.sqlite3:/account/account_service.sqlite3
-    environment:
-      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
     depends_on:
       - rabbitmq
       - account
@@ -108,16 +86,12 @@ services:
   # --- 3. Payments Service (payments) ---
   payments:
     build: ./payments
-    env_file:
-      - ./.env
     command: python manage.py runserver 0.0.0.0:8004
     volumes:
       - ./payments:/app
-      - ./payments/payment.sqlite3:/payment/payment.sqlite3
     ports:
       - "8004:8004"
     environment:
-      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
       - ACCOUNT_SERVICE_BASE_URL=http://account:8002
     depends_on:
       - rabbitmq
@@ -126,15 +100,10 @@ services:
 
   payments_worker:
     build: ./payments
-    env_file:
-      - ./.env
-    # Note: Listening to both payment.internal and default celery queue
     command: celery -A payments worker -Q payment.internal,celery -l info
     volumes:
       - ./payments:/app
-      - ./payments/payment.sqlite3:/payment/payment.sqlite3
     environment:
-      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
       - ACCOUNT_SERVICE_BASE_URL=http://account:8002
       - FRAUD_SERVICE_URL=http://fraud:8006
     depends_on:
@@ -147,16 +116,11 @@ services:
   # --- 4. Ledger Service (ledger_service) ---
   ledger:
     build: ./ledger_service
-    env_file:
-      - ./.env
     command: python manage.py runserver 0.0.0.0:8003
     volumes:
       - ./ledger_service:/app
-      - ./ledger_service/Ledger.sqlite3:/ledger/Ledger.sqlite3
     ports:
       - "8003:8003"
-    environment:
-      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
     depends_on:
       - rabbitmq
     networks:
@@ -164,37 +128,25 @@ services:
 
   ledger_worker:
     build: ./ledger_service
-    env_file:
-      - ./.env
     command: celery -A ledger_service worker -Q ledger.internal,celery -l info
     volumes:
       - ./ledger_service:/app
-      - ./ledger_service/Ledger.sqlite3:/ledger/Ledger.sqlite3
-    environment:
-      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
     depends_on:
       - rabbitmq
       - ledger
     networks:
       - arhan-network
 
-
   # --- 5. Frontend Service (frontend_service) ---
   frontend:
     build: ./frontend_service
-    env_file:
-      - ./.env
     command: sh -c "python manage.py migrate --noinput || echo 'MIGRATE FAILED (continuing)'; python manage.py collectstatic --noinput || echo 'COLLECTSTATIC FAILED (continuing)'; python manage.py runserver 0.0.0.0:8005"
     volumes:
       - ./frontend_service:/app
-      - ./frontend_service/frontend_service.sqlite3:/frontend/frontend_service.sqlite3
     ports:
       - "8005:8005"
-    environment:
-      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
     networks:
       - arhan-network
-
 
   # --- 6. Fraud Service (fraud_service) ---
   fraud:
@@ -211,5 +163,3 @@ services:
 networks:
   arhan-network:
     driver: bridge
-
-  
