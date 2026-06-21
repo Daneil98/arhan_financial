@@ -34,14 +34,18 @@ DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "*").split(",")
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-# Enforce Secure Cookies (Browser will only send them over HTTPS)
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
+# Secure Cookies: only send cookies over HTTPS. MUST be False while the site is
+# served over plain HTTP, otherwise the browser drops the session cookie and
+# login appears to "fail" (redirects straight back to login). Flip to True via
+# the environment once HTTPS is actually terminating at nginx.
+SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'False') == 'True'
+CSRF_COOKIE_SECURE = os.environ.get('CSRF_COOKIE_SECURE', 'False') == 'True'
 
 # CSRF Trusted Origins (Vital for POST requests)
 CSRF_TRUSTED_ORIGINS = [
     'https://arhan-financial.duckdns.org',
-    '[http://94.130.183.1](http://94.130.183.1)',
+    'http://94.130.183.1',
+    'https://94.130.183.1',
     'http://localhost',
 ]
 
