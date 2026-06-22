@@ -26,13 +26,14 @@ services:
 
   # --- Message Broker (local, internal-only) ---
   # No host ports are published, so it is only reachable on the internal
-  # arhan-network (services connect via amqp://guest:guest@rabbitmq:5672//).
+  # arhan-network. A dedicated user 'arhan' is created via the env vars below;
+  # unlike the built-in 'guest', a custom user has NO localhost-only
+  # restriction, so worker containers can connect (no 403 ACCESS_REFUSED).
   rabbitmq:
     image: rabbitmq:3-alpine
-    volumes:
-      # Lifts the guest-localhost-only restriction (fixes 403 ACCESS_REFUSED
-      # from worker containers). Broker is internal-only, so this is safe.
-      - ./rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+    environment:
+      - RABBITMQ_DEFAULT_USER=arhan
+      - RABBITMQ_DEFAULT_PASS=arhanbroker123
     networks:
       - arhan-network
     restart: always
@@ -45,6 +46,8 @@ services:
       - ./arhan_financial:/app
     ports:
       - "8001:8001"
+    environment:
+      - CELERY_BROKER_URL=amqp://arhan:arhanbroker123@rabbitmq:5672//
     depends_on:
       - rabbitmq
     networks:
@@ -55,6 +58,8 @@ services:
     command: celery -A arhan_financial worker -l info
     volumes:
       - ./arhan_financial:/app
+    environment:
+      - CELERY_BROKER_URL=amqp://arhan:arhanbroker123@rabbitmq:5672//
     depends_on:
       - rabbitmq
       - identity
@@ -71,6 +76,7 @@ services:
       - "8002:8002"
     environment:
       - IDENTITY_SERVICE_URL=http://identity:8001
+      - CELERY_BROKER_URL=amqp://arhan:arhanbroker123@rabbitmq:5672//
     depends_on:
       - rabbitmq
     networks:
@@ -81,6 +87,8 @@ services:
     command: celery -A account_services worker -Q account_service.internal,celery -l info
     volumes:
       - ./account_services:/app
+    environment:
+      - CELERY_BROKER_URL=amqp://arhan:arhanbroker123@rabbitmq:5672//
     depends_on:
       - rabbitmq
       - account
@@ -97,6 +105,7 @@ services:
       - "8004:8004"
     environment:
       - ACCOUNT_SERVICE_BASE_URL=http://account:8002
+      - CELERY_BROKER_URL=amqp://arhan:arhanbroker123@rabbitmq:5672//
     depends_on:
       - rabbitmq
     networks:
@@ -110,6 +119,7 @@ services:
     environment:
       - ACCOUNT_SERVICE_BASE_URL=http://account:8002
       - FRAUD_SERVICE_URL=http://fraud:8006
+      - CELERY_BROKER_URL=amqp://arhan:arhanbroker123@rabbitmq:5672//
     depends_on:
       - rabbitmq
       - payments
@@ -125,6 +135,8 @@ services:
       - ./ledger_service:/app
     ports:
       - "8003:8003"
+    environment:
+      - CELERY_BROKER_URL=amqp://arhan:arhanbroker123@rabbitmq:5672//
     depends_on:
       - rabbitmq
     networks:
@@ -135,6 +147,8 @@ services:
     command: celery -A ledger_service worker -Q ledger.internal,celery -l info
     volumes:
       - ./ledger_service:/app
+    environment:
+      - CELERY_BROKER_URL=amqp://arhan:arhanbroker123@rabbitmq:5672//
     depends_on:
       - rabbitmq
       - ledger
@@ -149,6 +163,8 @@ services:
       - ./frontend_service:/app
     ports:
       - "8005:8005"
+    environment:
+      - CELERY_BROKER_URL=amqp://arhan:arhanbroker123@rabbitmq:5672//
     networks:
       - arhan-network
 
