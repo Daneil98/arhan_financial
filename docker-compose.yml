@@ -29,6 +29,10 @@ services:
   # arhan-network (services connect via amqp://guest:guest@rabbitmq:5672//).
   rabbitmq:
     image: rabbitmq:3-alpine
+    volumes:
+      # Lifts the guest-localhost-only restriction (fixes 403 ACCESS_REFUSED
+      # from worker containers). Broker is internal-only, so this is safe.
+      - ./rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
     networks:
       - arhan-network
     restart: always
