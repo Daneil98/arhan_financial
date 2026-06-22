@@ -136,6 +136,7 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': os.path.join(BASE_DIR, 'Identity_service.sqlite3'),
+        'OPTIONS': {'timeout': 30},  # wait up to 30s for a write lock (avoids 'database is locked')
     }
 }
 

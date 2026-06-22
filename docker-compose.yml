@@ -43,7 +43,7 @@ services:
     build: ./arhan_financial
     command: sh -c "python manage.py migrate --noinput || echo 'MIGRATE FAILED (continuing)'; python manage.py runserver 0.0.0.0:8001"
     volumes:
-      - ./arhan_financial:/app
+      - ./arhan_financial:/Identity_service
     ports:
       - "8001:8001"
     environment:
@@ -57,7 +57,7 @@ services:
     build: ./arhan_financial
     command: celery -A arhan_financial worker -l info
     volumes:
-      - ./arhan_financial:/app
+      - ./arhan_financial:/Identity_service
     environment:
       - CELERY_BROKER_URL=amqp://arhan:arhanbroker123@rabbitmq:5672//
     depends_on:
@@ -71,7 +71,7 @@ services:
     build: ./account_services
     command: python manage.py runserver 0.0.0.0:8002
     volumes:
-      - ./account_services:/app
+      - ./account_services:/account_service
     ports:
       - "8002:8002"
     environment:
@@ -86,7 +86,7 @@ services:
     build: ./account_services
     command: celery -A account_services worker -Q account_service.internal,celery -l info
     volumes:
-      - ./account_services:/app
+      - ./account_services:/account_service
     environment:
       - CELERY_BROKER_URL=amqp://arhan:arhanbroker123@rabbitmq:5672//
     depends_on:
@@ -100,7 +100,7 @@ services:
     build: ./payments
     command: python manage.py runserver 0.0.0.0:8004
     volumes:
-      - ./payments:/app
+      - ./payments:/payment
     ports:
       - "8004:8004"
     environment:
@@ -115,7 +115,7 @@ services:
     build: ./payments
     command: celery -A payments worker -Q payment.internal,celery -l info
     volumes:
-      - ./payments:/app
+      - ./payments:/payment
     environment:
       - ACCOUNT_SERVICE_BASE_URL=http://account:8002
       - FRAUD_SERVICE_URL=http://fraud:8006
@@ -132,7 +132,7 @@ services:
     build: ./ledger_service
     command: python manage.py runserver 0.0.0.0:8003
     volumes:
-      - ./ledger_service:/app
+      - ./ledger_service:/ledger
     ports:
       - "8003:8003"
     environment:
@@ -146,7 +146,7 @@ services:
     build: ./ledger_service
     command: celery -A ledger_service worker -Q ledger.internal,celery -l info
     volumes:
-      - ./ledger_service:/app
+      - ./ledger_service:/ledger
     environment:
       - CELERY_BROKER_URL=amqp://arhan:arhanbroker123@rabbitmq:5672//
     depends_on:
@@ -160,7 +160,7 @@ services:
     build: ./frontend_service
     command: sh -c "python manage.py migrate --noinput || echo 'MIGRATE FAILED (continuing)'; python manage.py collectstatic --noinput || echo 'COLLECTSTATIC FAILED (continuing)'; python manage.py runserver 0.0.0.0:8005"
     volumes:
-      - ./frontend_service:/app
+      - ./frontend_service:/webportal
     ports:
       - "8005:8005"
     environment:
