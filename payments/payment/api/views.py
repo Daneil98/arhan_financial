@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from ..models import *
 from .serializers import *
-from django.db import transaction 
+from django.db import transaction, IntegrityError
 from ..tasks import *
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
@@ -24,33 +24,45 @@ class InternalTransferAPIView(APIView):
         start_time = time.time() 
         
         if serializer.is_valid():
-            with transaction.atomic():
-                # Construct a clean dictionary to send to Celery
-                payment_req = PaymentRequest.objects.create(
-                    payer_account_id=payer_account_id,
-                    payee_account_id=serializer.validated_data['payee_account_id'],
-                    amount=serializer.validated_data['amount'],
-                    status="PENDING",
-                    currency = "NGN",
-                    payment_type="INTERNAL_TRANSFER",
-                    # Store the task ID if needed later
-                )
-                data = {
-                    "payment_id": payment_req.id,
-                    "user_id": str(user_id),
-                    "payer_account_id": payer_account_id,
-                    "payee_account_id": serializer.validated_data['payee_account_id'],
-                    "amount": str(serializer.validated_data['amount']), # Use String for currency!
-                    #"account_type": str(serializer.validated_data['account_type']),
-                    "pin": str(serializer.validated_data['pin']), # Lowercase 'pin'
-                    # 2. ADD TIMESTAMP TO PAYLOAD
-                    "initiated_at_ts": start_time
-                }
-                
-                # Fire and forget
-                transaction.on_commit(lambda: process_internal_transfer.apply_async(args=[data]))
+            # Client-level idempotency: a repeated submit carrying the same key
+            # (double-click, back-then-resubmit) must NOT create a second transfer.
+            idem_key = request.data.get('idempotency_key') or None
+            if idem_key:
+                existing = PaymentRequest.objects.filter(idempotency_key=idem_key).first()
+                if existing:
+                    return Response({"status": "Processing", "duplicate": True}, status=200)
 
-                return Response({"status": "Processing",}, status=200)
+            try:
+                with transaction.atomic():
+                    # Construct a clean dictionary to send to Celery
+                    payment_req = PaymentRequest.objects.create(
+                        payer_account_id=payer_account_id,
+                        payee_account_id=serializer.validated_data['payee_account_id'],
+                        amount=serializer.validated_data['amount'],
+                        status="PENDING",
+                        currency="NGN",
+                        payment_type="INTERNAL_TRANSFER",
+                        idempotency_key=idem_key,
+                    )
+                    data = {
+                        "payment_id": payment_req.id,
+                        "user_id": str(user_id),
+                        "payer_account_id": payer_account_id,
+                        "payee_account_id": serializer.validated_data['payee_account_id'],
+                        "amount": str(serializer.validated_data['amount']), # Use String for currency!
+                        #"account_type": str(serializer.validated_data['account_type']),
+                        "pin": str(serializer.validated_data['pin']), # Lowercase 'pin'
+                        # 2. ADD TIMESTAMP TO PAYLOAD
+                        "initiated_at_ts": start_time
+                    }
+
+                    # Fire and forget (dispatched only after the row commits)
+                    transaction.on_commit(lambda: process_internal_transfer.apply_async(args=[data]))
+            except IntegrityError:
+                # Concurrent duplicate with the same key already created the transfer.
+                return Response({"status": "Processing", "duplicate": True}, status=200)
+
+            return Response({"status": "Processing"}, status=200)
         else:
             return Response(serializer.errors, status=400)
 
@@ -67,35 +79,47 @@ class CardPaymentAPIView(APIView):
         start_time = time.time() 
         
         if serializer.is_valid():
-            with transaction.atomic():
-                
-                # Create the Pending Transaction Record HERE (Before Celery)
-                # This ensures you have a record even if Celery crashes immediately
-                payment_req = PaymentRequest.objects.create(
-                    payer_account_id = payer_account_id,
-                    payee_account_id = serializer.validated_data['payee_account_id'],
-                    amount=serializer.validated_data['amount'],
-                    currency = "NGN",
-                    status = "PENDING",
-                    payment_type = "CARD",
-                    # Store the task ID if needed later
-                )
-                data = {
-                    "payment_id": payment_req.id,
-                    "user_id": str(user_id),
-                    "payer_account_id": payer_account_id,
-                    "payee_account_id": serializer.validated_data['payee_account_id'],
-                    "amount": str(serializer.validated_data['amount']), # Use String for currency!
-                    "PIN": str(serializer.validated_data['pin']),
-                    "card_number": str(serializer.validated_data['card_number']),
-                    "cvv": str(serializer.validated_data['cvv']),
-                    # 2. ADD TIMESTAMP TO PAYLOAD
-                    "initiated_at_ts": start_time
-                }
-                
-                transaction.on_commit(lambda: initiate_card_payment.apply_async(args=[data], queue='payment.internal'))
-        
-                return Response({"status": "Processing"}, status=200)
+            # Client-level idempotency: a repeated submit with the same key must
+            # NOT create a second card charge.
+            idem_key = request.data.get('idempotency_key') or None
+            if idem_key:
+                existing = PaymentRequest.objects.filter(idempotency_key=idem_key).first()
+                if existing:
+                    return Response({"status": "Processing", "duplicate": True}, status=200)
+
+            try:
+                with transaction.atomic():
+
+                    # Create the Pending Transaction Record HERE (Before Celery)
+                    # This ensures you have a record even if Celery crashes immediately
+                    payment_req = PaymentRequest.objects.create(
+                        payer_account_id = payer_account_id,
+                        payee_account_id = serializer.validated_data['payee_account_id'],
+                        amount=serializer.validated_data['amount'],
+                        currency = "NGN",
+                        status = "PENDING",
+                        payment_type = "CARD",
+                        idempotency_key=idem_key,
+                    )
+                    data = {
+                        "payment_id": payment_req.id,
+                        "user_id": str(user_id),
+                        "payer_account_id": payer_account_id,
+                        "payee_account_id": serializer.validated_data['payee_account_id'],
+                        "amount": str(serializer.validated_data['amount']), # Use String for currency!
+                        "PIN": str(serializer.validated_data['pin']),
+                        "card_number": str(serializer.validated_data['card_number']),
+                        "cvv": str(serializer.validated_data['cvv']),
+                        # 2. ADD TIMESTAMP TO PAYLOAD
+                        "initiated_at_ts": start_time
+                    }
+
+                    transaction.on_commit(lambda: initiate_card_payment.apply_async(args=[data], queue='payment.internal'))
+            except IntegrityError:
+                # Concurrent duplicate with the same key already created the charge.
+                return Response({"status": "Processing", "duplicate": True}, status=200)
+
+            return Response({"status": "Processing"}, status=200)
         else:
             return Response(serializer.errors, status=400)
 

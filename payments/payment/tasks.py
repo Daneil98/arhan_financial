@@ -363,88 +363,86 @@ def initiate_card_payment(self, data):
     PIN = data["PIN"]
     payment_id = data['payment_id']
     
+    # Only the "record not visible yet" race retries; debit/credit are idempotent
+    # so nothing else may blanket-retry (that replayed money movements before).
     try:
-        #Lock the Payment Request object for the transaction (Concurrency Control) 
-        payment = PaymentRequest.objects.select_for_update().get(id=payment_id, status='PENDING')
-        
-        #Logical Idempotency Check
-        if payment.status == "COMPLETED":
-            print(f"Payment {payment_id} already completed. Skipping.")
-            return
-        
+        payment = PaymentRequest.objects.get(id=payment_id)
+    except PaymentRequest.DoesNotExist:
+        print("Payment record not found yet. Retrying...")
+        raise self.retry(countdown=1, max_retries=5)
+
+    # Terminal states: nothing more to do (idempotent entry guard).
+    if payment.status in ("COMPLETED", "FAILED"):
+        print(f"Payment {payment_id} already {payment.status}. Skipping.")
+        return
+
+    # Per-leg idempotency keys so the account service applies each leg at most once.
+    debit_ref = f"{payment_id}:debit"
+    credit_ref = f"{payment_id}:credit"
+    refund_ref = f"{payment_id}:refund"
+
+    # ---- STAGE 1: verify card + fraud + debit (only while still PENDING) ----
+    if payment.status == "PENDING":
         # Step 1: Verify card details and pin
         card_response = verify_card(user_id, card_number, cvv, PIN)
-        
-        # If verify_card returns the account ID, we ensure we have it
         card_data = card_response.get("data", {})
-        
         if not card_data.get("validity", False):
-            print(f"Invalid card details")
-            payment.status="FAILED"
+            print("Invalid card details")
+            payment.status = "FAILED"
             payment.save()
-            return 
+            return
 
-        # STEP 1.5: FRAUD CHECK
-        fraud_payload = {
+        # 1.5 FRAUD CHECK
+        fraud_result = check_for_fraud({
             "transaction_id": str(payment.id),
             "user_id": str(user_id),
             "amount": amount,
             "currency": "NGN",
-            "timestamp": data.get("initiated_at_ts", 0)
-        }
-        
-        fraud_result = check_for_fraud(fraud_payload)
-        
+            "timestamp": data.get("initiated_at_ts", 0),
+        })
         if fraud_result.get("is_fraud"):
             print(f"Transaction Rejected by Fraud Service: {fraud_result.get('reason')}")
-            
-            with transaction.atomic():
-                payment.status = "FAILED"
-                payment.metadata = f"Fraud: {fraud_result.get('reason')}"
-                payment.save()
+            payment.status = "FAILED"
+            payment.metadata = {"fraud": fraud_result.get("reason")}
+            payment.save()
             return
-        
-        
-        # 2. DEBIT PAYER (API CALL)
-        debit_result = debit_account(user_id, payer_id, amount)
-        
+
+        # 2. DEBIT PAYER (idempotent via debit_ref)
+        debit_result = debit_account(user_id, payer_id, amount, transaction_ref=debit_ref)
         if debit_result.get("status") != "success":
             print(f"Debit Failed: {debit_result}")
-            payment.status="FAILED"
-            payment.save()                                             
+            payment.status = "FAILED"
+            payment.save()
             return
 
+        # Persist progress so a retry resumes at the credit stage instead of re-debiting.
+        payment.status = "DEBITED"
+        payment.save()
 
-        # 3. CREDIT PAYEE (API CALL)
-        credit_result = credit_account(user_id, payee_id, amount)
-        
+    # ---- STAGE 2: credit payee (only once debited) ----
+    if payment.status == "DEBITED":
+        credit_result = credit_account(user_id, payee_id, amount, transaction_ref=credit_ref)
         if credit_result.get("status") != "success":
             print(f"Credit Failed: {credit_result}")
-            payment.status="FAILED"
+            # Refund the payer (idempotent via refund_ref).
+            credit_account(user_id, payer_id, amount, transaction_ref=refund_ref)
+            payment.status = "FAILED"
             payment.save()
-            credit_account(user_id, payer_id, amount)   #Credit (Refund) the user
             return
 
-        # 4. SUCCESS - UPDATE DB & PUBLISH
-        try:
-            payer = PaymentAccount.objects.get(account_number=payer_id)
-            payee = PaymentAccount.objects.get(account_number=payee_id)
-        except PaymentAccount.DoesNotExist:
-            print("Accounts not found locally, skipping event enrichment")
-            return
-
-        # Update only the Transaction Status locally
         payment.status = "COMPLETED"
         payment.payer_account_id = payer_id
-        payment.metadata = {'TYPE': 'USER CARD PAYMENT'}
-        payment.processed_at = datetime.now()    
+        payment.metadata = {"TYPE": "USER CARD PAYMENT"}
+        payment.processed_at = datetime.now()
         payment.save()
-        
-    except:
-        # If not found, Retry in 1 second, for handling race conditions
-        print(f"Payment record not found yet. Retrying...")
-        raise self.retry(countdown=1, max_retries=5)
-    
+
+    # ---- STAGE 3: publish completion event ----
+    try:
+        payer = PaymentAccount.objects.get(account_number=payer_id)
+        payee = PaymentAccount.objects.get(account_number=payee_id)
+    except PaymentAccount.DoesNotExist:
+        print("Accounts not found locally, skipping event enrichment")
+        return
 
     # Publish Event
     event_data = {

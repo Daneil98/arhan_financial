@@ -36,10 +36,13 @@
             {% csrf_token %}
             
             {% for field in form %}
+            {% if field.is_hidden %}
+                {{ field }}
+            {% else %}
             <div class="form-group" style="position: relative;">
                 <label class="form-label">{{ field.label }}</label>
                 {{ field }}
-                
+
                 {% if field.name == 'card_number' %}
                 <div class="card-icons">
                     <i class="fab fa-cc-visa text-gray" style="font-size: 1.2rem;"></i>
@@ -51,6 +54,7 @@
                     <small style="color: #DC2626;">{{ field.errors.0 }}</small>
                 {% endif %}
             </div>
+            {% endif %}
             {% endfor %}
 
             <div style="background-color: #F8FAFC; padding: 15px; border-radius: 12px; margin-top: 20px;">

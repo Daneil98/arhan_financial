@@ -1,4 +1,4 @@
-import jwt, time
+import jwt, time, uuid
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from datetime import datetime, timedelta
@@ -531,15 +531,18 @@ def internal_transfer_view(request):
     if not is_valid:
         return redirect('login')
     
-    form = InternalTransferForm(request.POST)
     if request.method == "POST":
+        form = InternalTransferForm(request.POST)
         if form.is_valid():
+            # Reuse the key the form was rendered with; fall back to a fresh one.
+            idem_key = form.cleaned_data.get("idempotency_key") or str(uuid.uuid4())
             data = {
                 "payee_account_id": str(form.cleaned_data.get("payee_account_id")),
                 "amount": float(form.cleaned_data.get("amount")),
                 "pin": form.cleaned_data.get("pin"),
+                "idempotency_key": idem_key,
             }
-            
+
             client = PaymentClient(token)
             response = client.internal_transfer(data)
             
@@ -556,7 +559,8 @@ def internal_transfer_view(request):
         else:
             messages.error(request, "Please correct the error(s) below.")
     else:
-        form = InternalTransferForm()    
+        # Render with a fresh idempotency key embedded in the hidden field.
+        form = InternalTransferForm(initial={'idempotency_key': str(uuid.uuid4())})
     return render(request, 'customer_webportal/internal_transfer.html', {'form': form})
 
 
@@ -565,17 +569,20 @@ def card_payment_view(request):
     if not is_valid:
         return redirect('login')
     
-    form = CardPaymentForm(request.POST)
     if request.method == "POST":
+        form = CardPaymentForm(request.POST)
         if form.is_valid():
+            # Reuse the key the form was rendered with; fall back to a fresh one.
+            idem_key = form.cleaned_data.get("idempotency_key") or str(uuid.uuid4())
             data = {
                 "payee_account_id": str(form.cleaned_data.get("payee_account_id")),
                 "amount": float(form.cleaned_data.get("amount")),
                 "card_number": str(form.cleaned_data.get("card_number")),
                 "cvv": str(form.cleaned_data.get("cvv")),
                 "pin": form.cleaned_data.get("pin"),
+                "idempotency_key": idem_key,
             }
-            
+
             client = PaymentClient(token)
             response = client.card_payment(data)
             
@@ -592,7 +599,8 @@ def card_payment_view(request):
         else:
             messages.error(request, "Please correct the error(s) below.")
     else:
-        form = CardPaymentForm()    
+        # Render with a fresh idempotency key embedded in the hidden field.
+        form = CardPaymentForm(initial={'idempotency_key': str(uuid.uuid4())})
     return render(request, 'customer_webportal/card_payment.html', {'form': form})
 
 

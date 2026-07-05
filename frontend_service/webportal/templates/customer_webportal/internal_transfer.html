@@ -73,6 +73,9 @@
             {% csrf_token %}
             
             {% for field in form %}
+            {% if field.is_hidden %}
+                {{ field }}
+            {% else %}
             <div class="form-group">
                 <label class="form-label">{{ field.label }}</label>
                 {{ field }}
@@ -83,6 +86,7 @@
                     <small class="text-gray">{{ field.help_text }}</small>
                 {% endif %}
             </div>
+            {% endif %}
             {% endfor %}
 
             <div style="background-color: #F8FAFC; padding: 15px; border-radius: 12px; margin-top: 20px;">

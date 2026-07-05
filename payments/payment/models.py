@@ -29,6 +29,9 @@ class PaymentRequest(models.Model):
     Represents a user's intention to move funds.
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    # Client-supplied key that dedupes duplicate submits (double-click, resubmit).
+    # A repeated POST with the same key returns the existing PaymentRequest.
+    idempotency_key = models.CharField(max_length=120, unique=True, null=True, blank=True)
     payer_account_id = models.IntegerField(help_text="BankAccount number (Account Service)")
     payee_account_id = models.IntegerField(help_text="BankAccount number (Account Service)")
     amount = models.DecimalField(max_digits=18, decimal_places=2)

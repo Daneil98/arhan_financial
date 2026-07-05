@@ -202,6 +202,9 @@ class BankForm(forms.Form):
 
 class InternalTransferForm(forms.Form):
     """For Internal Transfers"""
+    # Per-render idempotency key; a double-submit of the same form reuses it so
+    # the payment service dedupes instead of creating a second transfer.
+    idempotency_key = forms.CharField(widget=forms.HiddenInput(), required=False)
     payee_account_id = forms.CharField(
         label="To Account",
         widget=forms.TextInput(attrs={'class': 'form-control'})
@@ -224,6 +227,9 @@ class InternalTransferForm(forms.Form):
 
 class CardPaymentForm(forms.Form):
     """For External Card Payments"""
+    # Per-render idempotency key; a double-submit reuses it so the payment
+    # service dedupes instead of creating a second card charge.
+    idempotency_key = forms.CharField(widget=forms.HiddenInput(), required=False)
     payee_account_id = forms.CharField(
         label="Beneficiary Account",
         widget=forms.TextInput(attrs={'class': 'form-control'})
