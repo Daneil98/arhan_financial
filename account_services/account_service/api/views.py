@@ -1,4 +1,4 @@
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
@@ -642,62 +642,93 @@ class CreditBankPool(APIView):
 class DebitAccount(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated, ]
-    
+
     def post(self, request):
         serializer = DebitSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         account_number = serializer.validated_data['account_number']
-        amount = serializer.validated_data['amount'] # This is now a Decimal
+        amount = serializer.validated_data['amount']  # This is now a Decimal
+        transaction_ref = serializer.validated_data.get('transaction_ref') or None
 
+        try:
+            with transaction.atomic():
+                # Lock the row so concurrent debits on the same account serialize.
+                account = BankAccount.objects.select_for_update().filter(account_number=account_number).first()
 
-        # Lock the row (select_for_update), This pauses other transactions trying to touch this specific row
-        account = BankAccount.objects.filter(account_number=account_number).select_for_update().first()
-            
-        if account.active == False:
-            return Response({"error": "Account is blocked"}, status=status.HTTP_403_FORBIDDEN)
- 
-        if account is None:
-            return Response({"error": "Account not found"}, status=status.HTTP_404_NOT_FOUND)
+                if account is None:
+                    return Response({"error": "Account not found"}, status=status.HTTP_404_NOT_FOUND)
 
+                if account.active == False:
+                    return Response({"error": "Account is blocked"}, status=status.HTTP_403_FORBIDDEN)
 
-        if account.balance < amount:
-            return Response({
-                "status": "failed", 
-                "message": "Insufficient funds"
-            }, status=status.HTTP_400_BAD_REQUEST)
+                # Idempotency: if this reference was already applied, do NOT debit again.
+                if transaction_ref and AppliedTransaction.objects.filter(reference=transaction_ref).exists():
+                    return Response({"status": "success", "new_balance": str(account.balance), "idempotent": True}, status=status.HTTP_200_OK)
 
-        account.balance -= amount
-        account.save()
+                if account.balance < amount:
+                    return Response({"status": "failed", "message": "Insufficient funds"}, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response({"status": "success", "new_balance": str(account.balance)}, status=status.HTTP_200_OK)
-    
+                account.balance -= amount
+                account.save()
+
+                if transaction_ref:
+                    AppliedTransaction.objects.create(
+                        reference=transaction_ref, operation="debit",
+                        account_number=account_number, amount=amount,
+                    )
+
+            return Response({"status": "success", "new_balance": str(account.balance)}, status=status.HTTP_200_OK)
+
+        except IntegrityError:
+            # A concurrent request with the same reference already applied it.
+            acct = BankAccount.objects.filter(account_number=account_number).first()
+            bal = str(acct.balance) if acct else None
+            return Response({"status": "success", "new_balance": bal, "idempotent": True}, status=status.HTTP_200_OK)
+
 
 class CreditAccount(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
-    
-    def post(self, request):
 
+    def post(self, request):
         serializer = DebitSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
         account_number = serializer.validated_data['account_number']
-        amount = serializer.validated_data['amount'] # This is now a Decimal
+        amount = serializer.validated_data['amount']  # This is now a Decimal
+        transaction_ref = serializer.validated_data.get('transaction_ref') or None
 
-        #Lock the row (select_for_update), This pauses other transactions trying to touch this specific row
-        account = BankAccount.objects.filter(account_number=account_number).select_for_update().first()
-        
-        if account.active == False:
-                return Response({"error": "Account is blocked"}, status=status.HTTP_403_FORBIDDEN)
+        try:
+            with transaction.atomic():
+                # Lock the row so concurrent credits on the same account serialize.
+                account = BankAccount.objects.select_for_update().filter(account_number=account_number).first()
 
-        if account is None:
-            return Response({"error": "Account not found"}, status=status.HTTP_404_NOT_FOUND)
+                if account is None:
+                    return Response({"error": "Account not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        account.balance += amount
-        account.save()
+                if account.active == False:
+                    return Response({"error": "Account is blocked"}, status=status.HTTP_403_FORBIDDEN)
 
-        return Response({"status": "success", "new_balance": str(account.balance)}, status=status.HTTP_200_OK)
+                # Idempotency: if this reference was already applied, do NOT credit again.
+                if transaction_ref and AppliedTransaction.objects.filter(reference=transaction_ref).exists():
+                    return Response({"status": "success", "new_balance": str(account.balance), "idempotent": True}, status=status.HTTP_200_OK)
+
+                account.balance += amount
+                account.save()
+
+                if transaction_ref:
+                    AppliedTransaction.objects.create(
+                        reference=transaction_ref, operation="credit",
+                        account_number=account_number, amount=amount,
+                    )
+
+            return Response({"status": "success", "new_balance": str(account.balance)}, status=status.HTTP_200_OK)
+
+        except IntegrityError:
+            # A concurrent request with the same reference already applied it.
+            acct = BankAccount.objects.filter(account_number=account_number).first()
+            bal = str(acct.balance) if acct else None
+            return Response({"status": "success", "new_balance": bal, "idempotent": True}, status=status.HTTP_200_OK)

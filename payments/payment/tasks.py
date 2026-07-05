@@ -256,78 +256,82 @@ def process_internal_transfer(self, data):
     pin = data["pin"]
     payment_id = data['payment_id'] 
     
+    # Only the "record not visible yet" race should trigger a retry. Everything
+    # else runs against idempotent debit/credit calls, so it must NOT blanket-retry
+    # (that is what replayed money movements before).
     try:
-        payment = PaymentRequest.objects.select_for_update().get(id=payment_id)
-        
-        if payment.status == "COMPLETED":
-            print(f" Payment {payment_id} already completed. Skipping.")
-            return
-        
+        payment = PaymentRequest.objects.get(id=payment_id)
+    except PaymentRequest.DoesNotExist:
+        print("Payment record not found yet. Retrying...")
+        raise self.retry(countdown=1, max_retries=5)
+
+    # Terminal states: nothing more to do (idempotent entry guard).
+    if payment.status in ("COMPLETED", "FAILED"):
+        print(f"Payment {payment_id} already {payment.status}. Skipping.")
+        return
+
+    # Per-leg idempotency keys. Each distinct money movement gets its own key so
+    # the account service applies it at most once, even across task retries.
+    debit_ref = f"{payment_id}:debit"
+    credit_ref = f"{payment_id}:credit"
+    refund_ref = f"{payment_id}:refund"
+
+    # ---- STAGE 1: validate + debit payer (only while still PENDING) ----
+    if payment.status == "PENDING":
         # 1. VERIFY PIN
         pin_response = verify_pin(user_id, payer_id, pin)
-        
         if not pin_response.get("data", {}).get("validity", False):
             print(f"Invalid PIN for {payer_id}")
-            # Mark Payment as FAILED
-            payment.status="FAILED"
+            payment.status = "FAILED"
             payment.save()
             return
 
-        # STEP 1.5: FRAUD CHECK
-        fraud_payload = {
+        # 1.5 FRAUD CHECK
+        fraud_result = check_for_fraud({
             "transaction_id": str(payment.id),
             "user_id": str(user_id),
             "amount": amount,
             "currency": "NGN",
-            "timestamp": data.get("initiated_at_ts", 0)
-        }
-        
-        fraud_result = check_for_fraud(fraud_payload)
-        
+            "timestamp": data.get("initiated_at_ts", 0),
+        })
         if fraud_result.get("is_fraud"):
             print(f"Transaction Rejected by Fraud Service: {fraud_result.get('reason')}")
-            
-            with transaction.atomic():
-                payment.status = "FAILED"
-                payment.metadata = f"Fraud: {fraud_result.get('reason')}"
-                payment.save()
+            payment.status = "FAILED"
+            payment.metadata = {"fraud": fraud_result.get("reason")}
+            payment.save()
             return
-        
-        
-        # 2. DEBIT PAYER (API CALL)
-        debit_result = debit_account(user_id, payer_id, amount)
-        
+
+        # 2. DEBIT PAYER (idempotent via debit_ref)
+        debit_result = debit_account(user_id, payer_id, amount, transaction_ref=debit_ref)
         if debit_result.get("status") != "success":
             print(f"Debit Failed: {debit_result}")
-            payment.status="FAILED"
+            payment.status = "FAILED"
             payment.save()
             return
 
-        # 3. CREDIT PAYEE (API CALL)
-        credit_result = credit_account(user_id, payee_id, amount) 
-        
+        # Persist progress so a retry resumes at the credit stage instead of re-debiting.
+        payment.status = "DEBITED"
+        payment.save()
+
+    # ---- STAGE 2: credit payee (only once debited) ----
+    if payment.status == "DEBITED":
+        credit_result = credit_account(user_id, payee_id, amount, transaction_ref=credit_ref)
         if credit_result.get("status") != "success":
             print(f"Credit Failed: {credit_result}")
-            
-            payment.status="FAILED"
+            # Refund the payer (idempotent via refund_ref).
+            credit_account(user_id, payer_id, amount, transaction_ref=refund_ref)
+            payment.status = "FAILED"
             payment.save()
-            credit_account(user_id, payer_id, amount)   #Credit (Refund) the user
             return
 
-        # 4. SUCCESS - UPDATE DB & PUBLISH
-        payer = get_object_or_404(PaymentAccount, account_number=data['payer_account_id'])
-        payee = get_object_or_404(PaymentAccount, account_number=data['payee_account_id'])
-        
-        
-        # Update only the Transaction Status locally
         payment.status = "COMPLETED"
-        payment.metadata = {'TYPE': 'USER INTERNAL TRANSFER'}
+        payment.metadata = {"TYPE": "USER INTERNAL TRANSFER"}
         payment.processed_at = datetime.now()
-        payment.save() 
-    except:
-        # If not found, Retry in 1 second, for handling race conditions
-        print(f"Payment record not found yet. Retrying...")
-        raise self.retry(countdown=1, max_retries=5)
+        payment.save()
+
+    # ---- STAGE 3: publish completion event ----
+    payer = get_object_or_404(PaymentAccount, account_number=data['payer_account_id'])
+    payee = get_object_or_404(PaymentAccount, account_number=data['payee_account_id'])
 
 
     # Publish Event

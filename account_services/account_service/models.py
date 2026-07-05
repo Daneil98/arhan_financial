@@ -141,6 +141,24 @@ class Loan(models.Model):
 
         super().save(*args, **kwargs)
     
+class AppliedTransaction(models.Model):
+    """
+    Idempotency ledger for balance changes. Every debit/credit records a unique
+    `reference` here. If the reference already exists, the balance change has
+    already been applied and MUST NOT be repeated — this makes debit/credit
+    safe to retry (network retries, Celery redelivery, task retries).
+    The caller supplies a per-leg reference, e.g. "<payment_id>:debit".
+    """
+    reference = models.CharField(max_length=120, unique=True)
+    operation = models.CharField(max_length=10)  # "debit" | "credit"
+    account_number = models.CharField(max_length=20)
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.operation} {self.amount} on {self.account_number} ref={self.reference}"
+
+
 class IT_Tickets(models.Model):
     user_id = models.IntegerField()
     id = models.AutoField(primary_key=True, unique=True)

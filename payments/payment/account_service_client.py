@@ -186,13 +186,16 @@ def credit_bank(user_id, amount):
     except Exception as e:
         return {"status": "failed", "message": str(e)}
 
-def debit_account(user_id, account_id, amount):
+def debit_account(user_id, account_id, amount, transaction_ref=None):
     url = f"{ACCOUNT_SERVICE_BASE_URL}/account_service_api/debit/"
     payload = {
         "amount": str(amount),
         "account_number": account_id,
         "user_id": user_id,
     }
+    # Idempotency key: makes a retried debit a no-op on the account service.
+    if transaction_ref:
+        payload["transaction_ref"] = transaction_ref
     # 1. Generate a real token
     token = generate_service_token(user_id)
     
@@ -208,8 +211,8 @@ def debit_account(user_id, account_id, amount):
     except Exception as e:
         return {"status": "failed", "message": str(e)}
 
-def credit_account(user_id, account_id, amount): 
-    # Logic implies payee usually receives into savings or current? 
+def credit_account(user_id, account_id, amount, transaction_ref=None):
+    # Logic implies payee usually receives into savings or current?
     # You might need to add payee_account_type to your serializer later.
     url = f"{ACCOUNT_SERVICE_BASE_URL}/account_service_api/credit/"
     payload = {
@@ -218,6 +221,9 @@ def credit_account(user_id, account_id, amount):
         "account_number": account_id,
         #"account_type": account_type
     }
+    # Idempotency key: makes a retried credit a no-op on the account service.
+    if transaction_ref:
+        payload["transaction_ref"] = transaction_ref
     # 1. Generate a real token
     token = generate_service_token(user_id)
     

@@ -69,7 +69,7 @@ services:
   # --- 2. Account Service (account_services) ---
   account:
     build: ./account_services
-    command: python manage.py runserver 0.0.0.0:8002
+    command: sh -c "python manage.py migrate --noinput || echo 'MIGRATE FAILED (continuing)'; python manage.py runserver 0.0.0.0:8002"
     volumes:
       - ./account_services:/account_service
     ports:
@@ -98,7 +98,7 @@ services:
   # --- 3. Payments Service (payments) ---
   payments:
     build: ./payments
-    command: python manage.py runserver 0.0.0.0:8004
+    command: sh -c "python manage.py migrate --noinput || echo 'MIGRATE FAILED (continuing)'; python manage.py runserver 0.0.0.0:8004"
     volumes:
       - ./payments:/payment
     ports:
@@ -130,7 +130,7 @@ services:
   # --- 4. Ledger Service (ledger_service) ---
   ledger:
     build: ./ledger_service
-    command: python manage.py runserver 0.0.0.0:8003
+    command: sh -c "python manage.py migrate --noinput || echo 'MIGRATE FAILED (continuing)'; python manage.py runserver 0.0.0.0:8003"
     volumes:
       - ./ledger_service:/ledger
     ports:

@@ -48,7 +48,9 @@ class blockaccountserializer(serializers.Serializer):
 class DebitSerializer(serializers.Serializer):
     account_number = serializers.CharField(required=True)
     amount = serializers.DecimalField(max_digits=12, decimal_places=2, required=True)
-
+    # Idempotency key. Optional so non-transfer callers (bank pool, cards) still
+    # work; when supplied, the balance change is applied at most once.
+    transaction_ref = serializers.CharField(required=False, allow_blank=True)
 
     def validate_amount(self, value):
         if value <= 0:
