@@ -24,4 +24,4 @@ celery -A account_services worker --loglevel=info &
 # 4. Start Gunicorn in the foreground
 # This keeps the container running.
 echo "🦄 Starting Gunicorn..."
-gunicorn account_services.wsgi:application --bind 0.0.0.0:$PORT
+gunicorn account_services.wsgi:application --bind 0.0.0.0:${PORT:-8002}

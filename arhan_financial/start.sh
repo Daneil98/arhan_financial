@@ -24,4 +24,4 @@ celery -A arhan_financial worker --loglevel=info &
 # 4. Start Gunicorn in the foreground
 # This keeps the container running.
 echo "🦄 Starting Gunicorn..."
-gunicorn arhan_financial.wsgi:application --bind 0.0.0.0:$PORT
+gunicorn arhan_financial.wsgi:application --bind 0.0.0.0:${PORT:-8001}

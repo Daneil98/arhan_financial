@@ -19,9 +19,9 @@ python manage.py collectstatic --noinput
 # 3. Start Celery in the background
 # The '&' symbol puts it in the background so the script continues.
 echo "👷 Starting Celery Worker..."
-celery -A legder_service worker --loglevel=info &
+celery -A ledger_service worker --loglevel=info &
 
 # 4. Start Gunicorn in the foreground
 # This keeps the container running.
 echo "🦄 Starting Gunicorn..."
-gunicorn ledger_service.wsgi:application --bind 0.0.0.0:$PORT
+gunicorn ledger_service.wsgi:application --bind 0.0.0.0:${PORT:-8003}

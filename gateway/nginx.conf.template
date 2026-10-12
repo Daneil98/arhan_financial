@@ -1,0 +1,84 @@
+worker_processes 1;
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    include       mime.types;
+    default_type  application/octet-stream;
+    sendfile        on;
+    keepalive_timeout  65;
+
+    # NOTE: Upstream URLs are baked in at container start via envsubst
+    # (see docker-entrypoint.sh). No runtime resolver needed, so this
+    # works on Docker Compose, Render, and Railway private networking.
+    # Configure via env vars, e.g. on Railway:
+    #   IDENTITY_UPSTREAM=https://identity-service.railway.internal:8001
+    # Defaults below target local docker-compose service names.
+
+    server {
+        listen ${PORT};
+        server_name localhost;
+
+        # --- 1. Identity Service ---
+        location /api/identity/ {
+            proxy_pass ${IDENTITY_UPSTREAM}/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        # --- 2. Account Service ---
+        location /api/account/ {
+            proxy_pass ${ACCOUNT_UPSTREAM}/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        # --- 3. Payments Service ---
+        location /api/payment/ {
+            proxy_pass ${PAYMENTS_UPSTREAM}/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        # --- 4. Ledger Service ---
+        location /api/ledger/ {
+            proxy_pass ${LEDGER_UPSTREAM}/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        # --- 6. Fraud Service ---
+        location /fraud/ {
+            proxy_pass ${FRAUD_UPSTREAM}/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        # --- 5. Frontend Service (catch-all) ---
+        location / {
+            proxy_pass ${FRONTEND_UPSTREAM}/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location = /health/ {
+            access_log off;
+            return 200 '{"status":"ok","service":"gateway"}';
+            add_header Content-Type application/json;
+        }
+    }
+}

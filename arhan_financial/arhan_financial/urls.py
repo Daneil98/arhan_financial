@@ -18,9 +18,15 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.http import JsonResponse
+
+
+def health(request):
+    return JsonResponse({"status": "ok", "service": "identity"})
 
 
 urlpatterns = [
+    path('health/', health),
     path('admin/', admin.site.urls),
     path('Identity_service/', include('Identity_service.urls')),
     path('Identity_service_api/', include('Identity_service.api.urls', namespace='Identity_service_api')),

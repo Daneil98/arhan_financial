@@ -1,0 +1,12 @@
+# Railway config for Nginx Gateway (optional — you can also expose frontend directly).
+# In Railway: create a service from this repo, set Root Directory = gateway.
+# Set upstream env vars to Railway private domains (see RAILWAY.md).
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+healthcheckPath = "/health/"
+healthcheckTimeout = 60
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10

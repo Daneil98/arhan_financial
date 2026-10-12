@@ -30,27 +30,36 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-fallback-key')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "94.130.183.1,94.130.183.1.nip.io,arhan-financial.duckdns.org,localhost,identity,account,payments,ledger,frontend,gateway").split(",")
+ALLOWED_HOSTS = [h.strip() for h in os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1,identity,account,payments,ledger,frontend,gateway").split(",") if h.strip()]
+# Railway: auto-trust Railway-assigned domains (public + private networking)
+for _var in ("RAILWAY_PUBLIC_DOMAIN", "RAILWAY_PRIVATE_DOMAIN"):
+    _val = os.getenv(_var)
+    if _val and _val not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(_val)
+# Wildcards cover any *.up.railway.app / *.railway.internal hostname
+for _suffix in (".up.railway.app", ".railway.internal"):
+    if _suffix not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(_suffix)
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Enforce Secure Cookies (Browser will only send them over HTTPS)
 SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'False') == 'True'
 CSRF_COOKIE_SECURE = os.environ.get('CSRF_COOKIE_SECURE', 'False') == 'True'
 
-# CSRF Trusted Origins (Vital for POST requests)
-CSRF_TRUSTED_ORIGINS = [
-    'https://arhan-financial.duckdns.org',
-    'http://94.130.183.1',
-    'http://localhost',
-    'http://identity',
-    'http://gateway',
-    'http://frontend',
-]
+# CSRF Trusted Origins (Vital for POST requests). Extend via CSRF_TRUSTED_ORIGINS env (comma-separated).
+CSRF_TRUSTED_ORIGINS = [o.strip() for o in os.getenv("CSRF_TRUSTED_ORIGINS", "https://arhan-financial.duckdns.org,http://94.130.183.1,http://localhost").split(",") if o.strip()]
+_railway_pub = os.getenv("RAILWAY_PUBLIC_DOMAIN")
+if _railway_pub:
+    for _scheme in ("https://", "http://"):
+        _origin = f"{_scheme}{_railway_pub}"
+        if _origin not in CSRF_TRUSTED_ORIGINS:
+            CSRF_TRUSTED_ORIGINS.append(_origin)
 
 # ==========================================
 # 2. AUTHENTICATION & JWT
 # ==========================================
-JWT_SHARED_SECRET = os.environ.get('JWT_SHARED_SECRET', "fallback-secret-change-me")
+# Accepts JWT_SHARED_SECRET (compose/readme) or JWT_SHARED_SECRET_KEY (render.yaml)
+JWT_SHARED_SECRET = os.environ.get('JWT_SHARED_SECRET') or os.environ.get('JWT_SHARED_SECRET_KEY', "fallback-secret-change-me")
 
 SIMPLE_JWT = {
     'SIGNING_KEY': JWT_SHARED_SECRET,
@@ -122,23 +131,26 @@ WSGI_APPLICATION = 'arhan_financial.wsgi.application'
 # 4. DATABASE & CELERY
 # ==========================================
 
-# Database
-# https://docs.djangoproject.com/en/4.2/ref/settings/#databases
-"""
-DATABASES = {
-    'default': dj_database_url.config(
-        default='sqlite:///' + os.path.join(BASE_DIR, 'Identity_service.sqlite3'),
-        conn_max_age=600
-    )
-}
-"""
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'Identity_service.sqlite3'),
-        'OPTIONS': {'timeout': 30},  # wait up to 30s for a write lock (avoids 'database is locked')
+# Database: Railway Postgres when DATABASE_URL is postgres*, else local sqlite.
+# For demo deploys on Railway with sqlite, attach a Volume at /data and set
+# SQLITE_DIR=/data so the .sqlite3 file survives restarts/redeploys.
+_SQLITE_DIR = os.getenv("SQLITE_DIR", BASE_DIR)
+_DATABASE_URL = os.getenv("DATABASE_URL", "")
+if _DATABASE_URL.startswith("postgres"):
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=_DATABASE_URL,
+            conn_max_age=600
+        )
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': os.path.join(_SQLITE_DIR, 'Identity_service.sqlite3'),
+            'OPTIONS': {'timeout': 30},  # wait up to 30s for a write lock (avoids 'database is locked')
+        }
+    }
 
 # Celery Config
 CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'amqp://guest:guest@rabbitmq:5672//')
@@ -202,13 +214,5 @@ USE_TZ = True
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend' if DEBUG else 'django.core.mail.backends.smtp.EmailBackend'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-CSRF_TRUSTED_ORIGINS = [
-    'http://94.130.183.1',
-    'http://localhost',
-    'http://identity',
-    'http://gateway',
-    'http://frontend',
-]
 
 

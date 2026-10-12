@@ -24,4 +24,4 @@ celery -A payments worker --loglevel=info &
 # 4. Start Gunicorn in the foreground
 # This keeps the container running.
 echo "🦄 Starting Gunicorn..."
-gunicorn payments.wsgi:application --bind 0.0.0.0:$PORT
+gunicorn payments.wsgi:application --bind 0.0.0.0:${PORT:-8004}

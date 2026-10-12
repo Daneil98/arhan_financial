@@ -16,8 +16,15 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.http import JsonResponse
+
+
+def health(request):
+    return JsonResponse({"status": "ok", "service": "ledger"})
+
 
 urlpatterns = [
+    path('health/', health),
     path('admin/', admin.site.urls),
     path('ledger/', include('ledger.urls')),
     path('ledger_api/', include('ledger.api.urls', namespace='api')),

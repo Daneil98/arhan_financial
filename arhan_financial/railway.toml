@@ -1,0 +1,13 @@
+# Railway config for Identity Service (web).
+# In Railway: create a service from this repo, set Root Directory = arhan_financial.
+# Workers: duplicate this service and override Start Command (see RAILWAY.md).
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+startCommand = "./start.sh"
+healthcheckPath = "/health/"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10

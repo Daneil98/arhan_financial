@@ -1,0 +1,13 @@
+# Railway config for Frontend Service (public-facing web).
+# In Railway: create a service from this repo, set Root Directory = frontend_service.
+# Generate a public domain for this service only.
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+startCommand = "./start.sh"
+healthcheckPath = "/health/"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
